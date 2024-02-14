@@ -1,0 +1,83 @@
+syntax = "proto3";
+package action;
+// Whiteboard Protocol Definition
+
+// Message to represent a user in the system
+message User {
+  string user_id = 1;
+  string username = 2;
+}
+
+// Message to represent a session
+message Session {
+  string session_id = 1;
+  User host = 2;
+}
+
+// Enum to represent different drawing actions
+enum DrawingAction {
+  DRAW = 0;
+  ERASE = 1;
+  UNDO = 2;
+}
+
+// Message to represent drawing information
+message Drawing {
+  User user = 1;
+  DrawingAction action = 2;
+  // Additional fields based on the action (e.g., coordinates, color, etc.)
+}
+
+// Message to represent a sticky note
+message StickyNote {
+  string note_id = 1;
+  string content = 2;
+  User user = 3;
+}
+
+// Message to represent an image
+message Image {
+  bytes data = 1; // Image data as binary
+  repeated Comment comments = 2;
+}
+
+// Message to represent a comment on an image
+message Comment {
+  User user = 1;
+  string text = 2;
+}
+
+// Message to represent a request to join a session
+message JoinSessionRequest {
+  Session session = 1;
+  User requesting_user = 2;
+}
+
+// Message to represent a response to a join session request
+message JoinSessionResponse {
+  Session session = 1;
+  bool accepted = 2;
+}
+
+// Message to represent a request to perform an action on the whiteboard
+message WhiteboardActionRequest {
+  Drawing drawing = 1;
+  // Additional fields for other actions (e.g., sticky note operations, image operations)
+}
+
+// Message to represent a response to a whiteboard action request
+message WhiteboardActionResponse {
+  bool success = 1;
+}
+
+// Message to represent a request to save the whiteboard as an image file
+message SaveWhiteboardRequest {
+  Session session = 1;
+  string file_format = 2; // "JPEG" or "PNG"
+  string file_path = 3;
+}
+
+// Message to represent a response to a save whiteboard request
+message SaveWhiteboardResponse {
+  bool success = 1;
+}
