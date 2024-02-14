@@ -1,0 +1,54 @@
+
+syntax = "proto3";
+package element;
+
+message Point {
+  float x = 1;
+  float y = 2;
+}
+
+message Common {
+  string id = 1;
+  string stroke_color = 2;
+}
+
+message Path {
+  Common common = 1;
+  repeated Point points = 2;
+}
+
+message Line {
+  Common common = 1;
+  Point start = 2;
+  Point end = 3;
+}
+
+message Circle {
+  Common common = 1;
+  Point center = 2;
+  float radius = 3;
+}
+
+message Triangle {
+  Common common = 1;
+  Point point1 = 2;
+  Point point2 = 3;
+  Point point3 = 4;
+}
+
+message Square {
+  Common common = 1;
+  Point topleft = 2;
+  float side_length = 3;
+}
+
+message Text{
+  Common common = 1;
+  String content = 2;
+}
+
+message Picture {
+  string id = 1;
+  string file_name = 2;
+  bytes data = 3;
+}
