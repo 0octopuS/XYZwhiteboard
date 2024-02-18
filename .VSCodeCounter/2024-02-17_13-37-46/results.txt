@@ -1,0 +1,45 @@
+Date : 2024-02-17 13:37:46
+Directory : /home/oysterpus/IP
+Total : 12 files,  276 codes, 36 comments, 75 blanks, all 387 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| protobuf |          3 |        146 |          0 |         33 |        179 |
+| cpp      |          6 |        101 |         22 |         28 |        151 |
+| CMake    |          3 |         29 |         14 |         14 |         57 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++-----------------------------------------------+------------+------------+------------+------------+------------+
+| path                                          | files      | code       | comment    | blank      | total      |
++-----------------------------------------------+------------+------------+------------+------------+------------+
+| .                                             |         12 |        276 |         36 |         75 |        387 |
+| . (Files)                                     |          1 |          6 |          5 |          4 |         15 |
+| proto                                         |          4 |        154 |          0 |         34 |        188 |
+| src                                           |          7 |        116 |         31 |         37 |        184 |
+| src (Files)                                   |          1 |         15 |          9 |          9 |         33 |
+| src/base                                      |          4 |         74 |         14 |         19 |        107 |
+| src/client                                    |          1 |         20 |          7 |          7 |         34 |
+| src/server                                    |          1 |          7 |          1 |          2 |         10 |
++-----------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++-----------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                      | language | code       | comment    | blank      | total      |
++-----------------------------------------------+----------+------------+------------+------------+------------+
+| /home/oysterpus/IP/CMakeLists.txt             | CMake    |          6 |          5 |          4 |         15 |
+| /home/oysterpus/IP/proto/CMakeLists.txt       | CMake    |          8 |          0 |          1 |          9 |
+| /home/oysterpus/IP/proto/action.proto         | protobuf |         65 |          0 |         15 |         80 |
+| /home/oysterpus/IP/proto/element.proto        | protobuf |         71 |          0 |         16 |         87 |
+| /home/oysterpus/IP/proto/packet.proto         | protobuf |         10 |          0 |          2 |         12 |
+| /home/oysterpus/IP/src/CMakeLists.txt         | CMake    |         15 |          9 |          9 |         33 |
+| /home/oysterpus/IP/src/base/element.cpp       | cpp      |          0 |          0 |          1 |          1 |
+| /home/oysterpus/IP/src/base/packet.cpp        | cpp      |         24 |          7 |          5 |         36 |
+| /home/oysterpus/IP/src/base/packet_client.cpp | cpp      |         13 |          1 |          4 |         18 |
+| /home/oysterpus/IP/src/base/utils.cpp         | cpp      |         37 |          6 |          9 |         52 |
+| /home/oysterpus/IP/src/client/client.cpp      | cpp      |         20 |          7 |          7 |         34 |
+| /home/oysterpus/IP/src/server/server.cpp      | cpp      |          7 |          1 |          2 |         10 |
+| Total                                         |          |        276 |         36 |         75 |        387 |
++-----------------------------------------------+----------+------------+------------+------------+------------+

@@ -1,0 +1,17 @@
+"filename", "language", "protobuf", "CMake", "cpp", "comment", "blank", "total"
+"/home/oysterpus/IP/CMakeLists.txt", "CMake", 0, 6, 0, 5, 4, 15
+"/home/oysterpus/IP/proto/CMakeLists.txt", "CMake", 0, 8, 0, 0, 1, 9
+"/home/oysterpus/IP/proto/action.proto", "protobuf", 62, 0, 0, 3, 15, 80
+"/home/oysterpus/IP/proto/element.proto", "protobuf", 71, 0, 0, 0, 16, 87
+"/home/oysterpus/IP/proto/packet.proto", "protobuf", 10, 0, 0, 0, 2, 12
+"/home/oysterpus/IP/src/CMakeLists.txt", "CMake", 0, 15, 0, 9, 9, 33
+"/home/oysterpus/IP/src/base/element.cpp", "cpp", 0, 0, 0, 0, 1, 1
+"/home/oysterpus/IP/src/base/element.hpp", "cpp", 0, 0, 17, 0, 5, 22
+"/home/oysterpus/IP/src/base/packet.cpp", "cpp", 0, 0, 21, 10, 5, 36
+"/home/oysterpus/IP/src/base/packet.hpp", "cpp", 0, 0, 36, 20, 7, 63
+"/home/oysterpus/IP/src/base/packet_client.cpp", "cpp", 0, 0, 11, 3, 4, 18
+"/home/oysterpus/IP/src/base/utils.cpp", "cpp", 0, 0, 37, 6, 9, 52
+"/home/oysterpus/IP/src/client/client.cpp", "cpp", 0, 0, 20, 7, 7, 34
+"/home/oysterpus/IP/src/client/client.hpp", "cpp", 0, 0, 28, 5, 8, 41
+"/home/oysterpus/IP/src/server/server.cpp", "cpp", 0, 0, 7, 1, 2, 10
+"Total", "-", 143, 29, 177, 69, 95, 513

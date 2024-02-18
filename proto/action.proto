@@ -1,83 +1,80 @@
 syntax = "proto3";
-package action;
+import "element.proto";
+package whiteboard;
 // Whiteboard Protocol Definition
 
-// Message to represent a user in the system
-message User {
-  string user_id = 1;
-  string username = 2;
+message RegisterReuest{
+  string username = 1;
+  string password_hash = 2;
 }
 
-// Message to represent a session
-message Session {
-  string session_id = 1;
-  User host = 2;
+message LoginReuest{
+  string username = 1;
+  string password_hash = 2;
+  string token = 3;
 }
 
-// Enum to represent different drawing actions
-enum DrawingAction {
-  DRAW = 0;
-  ERASE = 1;
-  UNDO = 2;
+message CreateWhiteBoardRequest {
+  uint32 user_id = 1;
 }
 
-// Message to represent drawing information
-message Drawing {
-  User user = 1;
-  DrawingAction action = 2;
-  // Additional fields based on the action (e.g., coordinates, color, etc.)
+message CreateSessionRequest {
+  uint32 user_id = 1;
+  uint32 whiteboard_id = 2;
 }
 
-// Message to represent a sticky note
-message StickyNote {
-  string note_id = 1;
-  string content = 2;
-  User user = 3;
-}
-
-// Message to represent an image
-message Image {
-  bytes data = 1; // Image data as binary
-  repeated Comment comments = 2;
-}
-
-// Message to represent a comment on an image
-message Comment {
-  User user = 1;
-  string text = 2;
-}
-
-// Message to represent a request to join a session
 message JoinSessionRequest {
-  Session session = 1;
-  User requesting_user = 2;
+  uint32 session_id = 1;
+  uint32 user_id = 2;
 }
 
-// Message to represent a response to a join session request
-message JoinSessionResponse {
-  Session session = 1;
-  bool accepted = 2;
+message QuitSessionRequest {
+  uint32 session_id = 1;
+  uint32 user_id = 2;
 }
 
-// Message to represent a request to perform an action on the whiteboard
-message WhiteboardActionRequest {
-  Drawing drawing = 1;
-  // Additional fields for other actions (e.g., sticky note operations, image operations)
+message AddElementRequest {
+  whiteboard.Element element = 1;
 }
 
-// Message to represent a response to a whiteboard action request
-message WhiteboardActionResponse {
-  bool success = 1;
+message ModifyElementRequest {
+  whiteboard.Element orig_element = 1;
+  whiteboard.Element modi_element = 2;
 }
 
-// Message to represent a request to save the whiteboard as an image file
 message SaveWhiteboardRequest {
-  Session session = 1;
+  uint32 session_id = 1;
   string file_format = 2; // "JPEG" or "PNG"
   string file_path = 3;
 }
 
-// Message to represent a response to a save whiteboard request
-message SaveWhiteboardResponse {
+
+// -------------- server action -----------------
+// Message to represent a response to a whiteboard action request
+message RegisterResponse{
   bool success = 1;
+  string token = 2;
+}
+
+message ActionResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message BroadCast {
+  repeated Element elements = 1;
+}
+
+
+message PacketAction {
+  oneof action_type {
+    CreateWhiteBoardRequest createWhiteBoard = 1;
+    CreateSessionRequest createSession = 2;
+    JoinSessionRequest joinSession = 3;
+    AddElementRequest addElement = 4;
+    ModifyElementRequest modifyElement = 5;
+    SaveWhiteboardRequest saveWhiteboard = 6;
+    ActionResponse actionResponse = 7;
+    BroadCast broadcast = 8;
+  }  
 }

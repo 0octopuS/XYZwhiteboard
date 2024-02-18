@@ -1,0 +1,45 @@
+Date : 2024-02-18 14:44:43
+Directory : /home/oysterpus/IP
+Total : 14 files,  360 codes, 29 comments, 43 blanks, all 432 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| cpp      |         13 |        354 |         25 |         40 |        419 |
+| CMake    |          1 |          6 |          4 |          3 |         13 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                           | files      | code       | comment    | blank      | total      |
++------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                              |         14 |        360 |         29 |         43 |        432 |
+| src                                            |         14 |        360 |         29 |         43 |        432 |
+| src (Files)                                    |          1 |          6 |          4 |          3 |         13 |
+| src/base                                       |          6 |        125 |         -1 |         15 |        139 |
+| src/client                                     |          2 |         30 |         13 |          1 |         44 |
+| src/example                                    |          2 |         28 |          2 |          5 |         35 |
+| src/server                                     |          3 |        171 |         11 |         19 |        201 |
++------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                       | language | code       | comment    | blank      | total      |
++------------------------------------------------+----------+------------+------------+------------+------------+
+| /home/oysterpus/IP/src/CMakeLists.txt          | CMake    |          6 |          4 |          3 |         13 |
+| /home/oysterpus/IP/src/base/network.cpp        | cpp      |         31 |          1 |          5 |         37 |
+| /home/oysterpus/IP/src/base/network.hpp        | cpp      |         40 |          0 |         10 |         50 |
+| /home/oysterpus/IP/src/base/packet.cpp         | cpp      |         22 |         -6 |          1 |         17 |
+| /home/oysterpus/IP/src/base/packet.hpp         | cpp      |          3 |          2 |         -1 |          4 |
+| /home/oysterpus/IP/src/base/packet_client.cpp  | cpp      |         11 |          1 |          0 |         12 |
+| /home/oysterpus/IP/src/base/protobuf_addon.hpp | cpp      |         18 |          1 |          0 |         19 |
+| /home/oysterpus/IP/src/client/client.cpp       | cpp      |         15 |         11 |          1 |         27 |
+| /home/oysterpus/IP/src/client/client.hpp       | cpp      |         15 |          2 |          0 |         17 |
+| /home/oysterpus/IP/src/example/test_client.cpp | cpp      |         17 |          2 |          3 |         22 |
+| /home/oysterpus/IP/src/example/test_server.cpp | cpp      |         11 |          0 |          2 |         13 |
+| /home/oysterpus/IP/src/server/server.cpp       | cpp      |         95 |         10 |          8 |        113 |
+| /home/oysterpus/IP/src/server/server.hpp       | cpp      |         27 |          1 |          5 |         33 |
+| /home/oysterpus/IP/src/server/thread_pool.hpp  | cpp      |         49 |          0 |          6 |         55 |
+| Total                                          |          |        360 |         29 |         43 |        432 |
++------------------------------------------------+----------+------------+------------+------------+------------+

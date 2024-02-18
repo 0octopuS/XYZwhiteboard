@@ -1,6 +1,6 @@
 
 syntax = "proto3";
-package element;
+package whiteboard;
 
 message Point {
   float x = 1;
@@ -10,6 +10,7 @@ message Point {
 message Common {
   string id = 1;
   string stroke_color = 2;
+  string user_id = 3;
 }
 
 message Path {
@@ -44,11 +45,43 @@ message Square {
 
 message Text{
   Common common = 1;
-  String content = 2;
+  Point center = 2;
+  string content = 3;
 }
 
+
+message Comment {
+  string user_id = 1;
+  string content = 2;
+}
+
+
 message Picture {
-  string id = 1;
+  Common common = 1;
   string file_name = 2;
-  bytes data = 3;
+  Point center = 3;
+  float top_side_length = 4;
+  bytes data = 5;
+  repeated Comment comments = 6;
+}
+
+message StickyNote {
+  Common common = 1;
+  Point center = 2;
+  float side_length = 3;
+  string content = 4;
+}
+
+
+message Element {
+  oneof element_type {
+    Path path = 1;
+    Line line = 2;
+    Circle circle = 3;
+    Triangle triangle = 4;
+    Square square = 5;
+    Text text = 6;
+    Picture picture = 7;
+    StickyNote stickynote = 8;
+  }  
 }

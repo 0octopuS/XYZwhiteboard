@@ -1,6 +1,6 @@
 PROJECT(X_whiteboard)
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0.0)
-SET(CMAKE_CXX_FLAGS "-g -Wall -Werror -std=c++17")
+SET(CMAKE_CXX_FLAGS "-g -Wall -Werror -std=gnu++17")
 
 find_package(Protobuf REQUIRED)
 
