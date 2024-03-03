@@ -8,3 +8,4 @@ build/
 .*.swo
 tags
 .cache/
+.VSCodeCounter

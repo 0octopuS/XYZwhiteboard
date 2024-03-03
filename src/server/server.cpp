@@ -1,7 +1,9 @@
 #include "server.hpp"
+#include "action.pb.h"
 #include "packet.pb.h"
 #include <boost/asio/read.hpp>
 #include <boost/asio/read_until.hpp>
+#include <cstdint>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 
 void WhiteboardServer::accept_connections() {
@@ -92,31 +94,86 @@ void WhiteboardServer::handle_connection(tcp::socket socket) {
   }
 }
 
-void WhiteboardServer::handle_create_whiteboard_request(
-    const whiteboard::CreateWhiteBoardRequest &request, tcp::socket &socket) {
-  // Handle CreateWhiteBoardRequest
-  std::cout << "Received CreateWhiteBoardRequest with user_id: "
-            << request.user_id() << std::endl;
-  try {
-    whiteboard::whiteboardPacket response;
-    whiteboard::ActionResponse *response_action =
-        response.mutable_action()->mutable_actionresponse();
-    response_action->set_success(true);
-    response_action->set_message("Whiteboard created successfully");
-    boost::asio::streambuf response_stream;
-    std::ostream os(&response_stream);
-    response.SerializeToOstream(&os);
+uint32_t WhiteboardServer::handle_assign_user_id() {
+  uint32_t temp_user_id = 1; // change to a RNG
+  std::cout << (temp_user_id);
+  // try {
+  //   whiteboard::whiteboardPacket response;
+  //   whiteboard::TempIDResponse *response_action =
+  //       response.mutable_action()->mutable_tempidresponse();
+  //   response_action->set_success(true);
+  //   response_action->set_user_id(temp_user_id);
+  //   boost::asio::streambuf response_stream;
+  //   std::ostream os(&response_stream);
+  //   response.SerializeToOstream(&os);
+  //   // Send response to client
+  //   boost::asio::write(socket, response_stream);
+  // } catch (const std::exception &e) {
+  //   std::cerr << "Exception in handle_assign_user_id: " << e.what()
+  //             << std::endl;
+  // }
 
-    // Send response to client
-    boost::asio::write(socket, response_stream);
-  } catch (const std::exception &e) {
-    std::cerr << "Exception in handle_create_whiteboard_request: " << e.what()
-              << std::endl;
+  return temp_user_id;
+}
+
+void WhiteboardServer::handle_create_whiteboard_request(
+    const whiteboard::CreateWhiteBoardRequest &request,
+    tcp::socket &tcp_socket) {
+  // Handle CreateWhiteBoardRequest
+  auto user_id = request.user_id();
+  std::cout << "Received CreateWhiteBoardRequest with user_id: " << user_id
+            << std::endl;
+
+  // If the user is anonymous, then server first assign
+  // a temporary id; send a packet back to client
+  // them connect the user_id with new whiteboard.
+  if (request.user_id() == 0) {
+    user_id = handle_assign_user_id();
   }
+  whiteboard::whiteboardPacket response;
+  whiteboard::ActionResponse *response_action =
+      response.mutable_action()->mutable_actionresponse();
+  response_action->set_success(true);
+  response_action->set_message("Whiteboard created successfully");
+  send_response(response, tcp_socket, "handle_create_whiteboard_request");
+
+  // try {
+  //   whiteboard::whiteboardPacket response;
+  //   whiteboard::ActionResponse *response_action =
+  //       response.mutable_action()->mutable_actionresponse();
+  //   response_action->set_success(true);
+  //   response_action->set_message("Whiteboard created successfully");
+  //   boost::asio::streambuf response_stream;
+  //   std::ostream os(&response_stream);
+  //   response.SerializeToOstream(&os);
+
+  //   // Send response to client
+  //   boost::asio::write(socket, response_stream);
+  // } catch (const std::exception &e) {
+  //   std::cerr << "Exception in handle_create_whiteboard_request: " <<
+  //   e.what()
+  //             << std::endl;
+  // }
 }
 
 void WhiteboardServer::handle_create_session_request(
     const whiteboard::CreateSessionRequest &request) {
   // Handle CreateSessionRequest
   std::cout << "Received CreateSessionRequest\n";
+}
+
+void WhiteboardServer::send_response(whiteboard::whiteboardPacket &response,
+                                     tcp::socket &tcp_socket,
+                                     std::string message) {
+
+  try {
+
+    boost::asio::streambuf response_stream;
+    std::ostream os(&response_stream);
+    response.SerializeToOstream(&os);
+    // Send response to client
+    boost::asio::write(tcp_socket, response_stream);
+  } catch (const std::exception &e) {
+    std::cerr << "Exception in " << message << ": " << e.what() << std::endl;
+  }
 }

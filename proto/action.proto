@@ -65,6 +65,11 @@ message BroadCast {
   repeated Element elements = 1;
 }
 
+message TempIDResponse {
+  bool success = 1;
+  uint32 user_id = 2;
+}
+
 
 message PacketAction {
   oneof action_type {
@@ -76,5 +81,6 @@ message PacketAction {
     SaveWhiteboardRequest saveWhiteboard = 6;
     ActionResponse actionResponse = 7;
     BroadCast broadcast = 8;
+    TempIDResponse tempIdResponse = 9;
   }  
 }

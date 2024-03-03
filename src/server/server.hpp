@@ -16,11 +16,14 @@ private:
 
   whiteboard::whiteboardPacket parse_packet(boost::asio::streambuf *buffer);
 
+  uint32_t handle_assign_user_id();
   void handle_create_whiteboard_request(
       const whiteboard::CreateWhiteBoardRequest &request, tcp::socket &socket);
 
   void handle_create_session_request(
       const whiteboard::CreateSessionRequest &request);
+  void send_response(whiteboard::whiteboardPacket &response,
+                     tcp::socket &tcp_socke, std::string messaget);
 
 public:
   WhiteboardServer(unsigned short port)

@@ -2,11 +2,15 @@
 #include <iostream>
 #include <thread>
 
+void test_createwhiteboard(WhiteboardClient *client) {
+  client->send_create_whiteboard_request(); // Pass user ID
+  std::cout << "Sent CreateWhiteBoardRequest\n";
+}
+
 int main() {
   try {
     WhiteboardClient client("127.0.0.1", 12345); // Assuming server IP and port
-    client.send_create_whiteboard_request();     // Pass user ID
-    std::cout << "Sent CreateWhiteBoardRequest\n";
+    test_createwhiteboard(&client);
 
     // Continuously handle responses
     while (true) {
