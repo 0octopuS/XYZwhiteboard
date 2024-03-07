@@ -4,6 +4,7 @@
 #include "packet.pb.h"
 #include <cstdint>
 #include <iostream>
+#include <sys/types.h>
 
 enum class WhiteboardPacketType : uint32_t {
   // client packet
@@ -45,12 +46,13 @@ public:
   // uint8_t get_userId() const { return user_id; }
   // WhiteboardPacketType get_type() const { return type; }
   size_t byte_size() { return packet.ByteSizeLong(); }
+
   // methods to create packet
 
   void new_create_whiteboard_request(uint32_t user_id);
-  void new_create_share_url_request();
-  void new_quit_whiteboard_request();
-  void new_add_element_request(const whiteboard::AddElementRequest &request);
+  void new_create_session_request(uint32_t user_id);
+  void new_quit_session_request(uint32_t user_id);
+  void new_add_element_request();
   void new_modify_element_request();
   void new_delete_element_request();
   void new_broadcast_request();
@@ -58,6 +60,8 @@ public:
   void new_error_request();
 
   void new_packet(whiteboard::PacketAction packet_action);
+
+  // methods to parse/decode packet (protobuf -> C++ class)
 
   // methods to send packet
   std::string serialize() const;

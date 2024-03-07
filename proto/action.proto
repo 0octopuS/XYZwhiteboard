@@ -76,11 +76,12 @@ message PacketAction {
     CreateWhiteBoardRequest createWhiteBoard = 1;
     CreateSessionRequest createSession = 2;
     JoinSessionRequest joinSession = 3;
-    AddElementRequest addElement = 4;
-    ModifyElementRequest modifyElement = 5;
-    SaveWhiteboardRequest saveWhiteboard = 6;
-    ActionResponse actionResponse = 7;
-    BroadCast broadcast = 8;
-    TempIDResponse tempIdResponse = 9;
+    QuitSessionRequest quitSession = 4;
+    AddElementRequest addElement = 5;
+    ModifyElementRequest modifyElement = 6;
+    SaveWhiteboardRequest saveWhiteboard = 7;
+    ActionResponse actionResponse = 8;
+    BroadCast broadcast = 9;
+    TempIDResponse tempIdResponse = 10;
   }  
 }

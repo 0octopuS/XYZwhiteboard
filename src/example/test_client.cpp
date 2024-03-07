@@ -4,6 +4,15 @@
 
 void test_createwhiteboard(WhiteboardClient *client) {
   client->send_create_whiteboard_request(); // Pass user ID
+
+  WhiteboadElements sqaure(1, 2);
+  Elements sqaure2;
+  sqaure2.new_square(1, 2);
+  // WhiteboardPacket packet;
+  // packet.new_add_element_request(a);?
+  client->send_add_element_request(sqaure);
+  client->send_modify_element_request(sqaure1, sqaure2);
+
   std::cout << "Sent CreateWhiteBoardRequest\n";
 }
 

@@ -12,6 +12,8 @@ void WhiteboardClient::send_create_whiteboard_request() {
   send_packet(packet);
 }
 
+// void WhiteboardClient::send_create_whiteboard_request
+
 void WhiteboardClient::send_add_element_request() {
 
   // A possible example from a xml <Path> component, not the real action
