@@ -5,7 +5,7 @@
 void test_createwhiteboard(WhiteboardClient *client) {
   client->send_create_whiteboard_request(); // Pass user ID
 
-  WhiteboadElements sqaure(1, 2);
+  WhiteboardElements sqaure(1, 2);
   Elements sqaure2;
   sqaure2.new_square(1, 2);
   // WhiteboardPacket packet;
