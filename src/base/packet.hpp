@@ -52,7 +52,7 @@ public:
   void new_create_whiteboard_request(uint32_t user_id);
   void new_create_session_request(uint32_t user_id);
   void new_quit_session_request(uint32_t user_id);
-  void new_add_element_request();
+  void new_add_element_request(WhiteboardElements _element);
   void new_modify_element_request();
   void new_delete_element_request();
   void new_broadcast_request();
@@ -60,7 +60,6 @@ public:
   void new_error_request();
 
   void new_packet(whiteboard::PacketAction packet_action);
-
   // methods to parse/decode packet (protobuf -> C++ class)
 
   // methods to send packet

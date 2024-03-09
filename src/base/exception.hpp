@@ -9,7 +9,7 @@ public:
   ElementsTypeUnmatch(const string &msg) : msg_(msg) {}
   ~ElementsTypeUnmatch() {}
 
-  string getMessage() const { return (msg_); }
+  const char *what() const noexcept override { return msg_.c_str(); }
 
 private:
   string msg_;

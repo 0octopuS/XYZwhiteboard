@@ -1,5 +1,6 @@
 #include "element.pb.h"
 #include <cstdint>
+#include <string>
 
 enum class WhiteboardElementsType : uint8_t {
   Path = 0, // Path: random curve path
@@ -10,11 +11,7 @@ enum class WhiteboardElementsType : uint8_t {
   Text = 5,
   Picture = 6,
   StickyNote = 7,
-};
-
-std::string WhiteboardElementsTypeDict[] = {
-    "Path",   "Line", "Circle",  "Triangle",
-    "Square", "Text", "Picture", "StickyNote",
+  Null = 16,
 };
 
 #define CASTTYPE(type) static_cast<int>(type)
@@ -22,11 +19,15 @@ std::string WhiteboardElementsTypeDict[] = {
 class Point {
 public:
   uint32_t x, y;
+  std::string str() {
+    std::string res = "(" + std::to_string(x) + "," + std::to_string(y) + ")";
+    return res;
+  }
 };
 
 class WhiteboardElements {
 private:
-  WhiteboardElementsType type;
+  WhiteboardElementsType type = WhiteboardElementsType::Null;
   // >>> pos1
   //
   Point pos1;
@@ -60,7 +61,7 @@ public:
   // For triangle
 
   void new_triangle(Point _p1, Point _p2, Point _p3);
-  std::tuple<Point, Point, Point> get_triangle_points();
+  std::vector<Point> get_triangle_points();
 
   // For square
   void new_square(Point topleft, float side_length);
@@ -68,5 +69,22 @@ public:
   float get_square_side_length();
   Point get_square_topleft();
 
-  whiteboard::Element get_proto_element();
+  // For text
+  void new_text(Point center, std::string _content);
+  Point get_text_center();
+  std::string get_text_content();
+
+  // For picture
+  // void new_picture(std::string file_name, Point center, float
+  // top_side_length, byte data);
+
+  // For sticky note
+  void new_stickynote(Point center, float _side_length, std::string _content);
+  Point get_stickynote_center();
+  float get_stickynote_side_length();
+  std::string get_stickynote_content();
+  // For general use
+  whiteboard::Element get_protobuf();
+  WhiteboardElementsType get_type() { return type; }
+  void print();
 };

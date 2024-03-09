@@ -13,3 +13,23 @@ The Whiteboard Protocol defines a set of rules and conventions for exchanging me
 - Undo and redo actions.
 - Collaborate with other users in real-time.
 - The protocol is built on top of Google's Protocol Buffers (protobuf), providing efficient serialization and deserialization of messages over the network.
+
+
+## Base
+
+### Element.hpp
+
+Define `WhiteboardElement` class for standard APIs for creating and parsing Element.
+
+| Element type | Create method | To protobuf | Print | Test |
+| ------------ | ------------- | ----------- | ----- | ---- |
+| Path         | ✅             | ✅           | ✅     | ✅    |
+| Line         | ✅             | ✅           | ✅     | ✅    |
+| Circle       | ✅             | ✅           | ✅     | ✅    |
+| Triangle     | ✅             | ✅           | ✅     | ✅    |
+| Square       | ✅             | ✅           | ✅     | ✅    |
+| Text         | ✅             | ✅           | ✅     | ✅    |
+| Picture      |               |             |       |      |
+| StickyNote   | ✅             | ✅           | ✅     | ✅    |
+| Null         |               |             | ✅     | ✅    |
+|              |               |             |       |      |

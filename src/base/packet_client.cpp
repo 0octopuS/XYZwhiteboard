@@ -63,10 +63,10 @@ void WhiteboardPacket::new_add_element_request(WhiteboardElements _element) {
   whiteboard::PacketAction action;
   whiteboard::AddElementRequest *add_element_request =
       action.mutable_addelement();
-  whiteboard::Element element;
+  WhiteboardElements element;
+  auto proto_element = element.get_protobuf();
   // WhiteboardElementsType _ele_type = _element.get_type();
-  add_element_request->set_allocated_element();
+  add_element_request->set_allocated_element(&proto_element);
   // type = WhiteboardPacketType::addElement;
-
   // addElementRequest = request;
 }
