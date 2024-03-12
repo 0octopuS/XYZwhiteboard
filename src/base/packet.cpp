@@ -4,6 +4,18 @@
 #include <cstdio>
 #include <iostream>
 
+std::vector<std::string> packet_action_name{"",
+                                            "CreateWhiteBoardRequest",
+                                            "CreateSessionRequest",
+                                            "JoinSessionRequest",
+                                            "QuitSessionRequest",
+                                            "AddElementRequest",
+                                            "ModifyElementRequest",
+                                            "DeleteElement",
+                                            "SaveWhiteboardRequest",
+                                            "ActionResponse",
+                                            "BroadCast",
+                                            "TempIDResponse"};
 void WhiteboardPacket::serialize(std::ostream *buffer) const {
   packet.SerializeToOstream(buffer);
 }
@@ -13,6 +25,7 @@ void WhiteboardPacket::serialize(
 
   buffer->WriteVarint32(packet.ByteSizeLong());
   packet.SerializeToCodedStream(buffer);
+  buffer->WriteRaw("\n", 1);
 }
 std::string WhiteboardPacket::serialize() const {
 
@@ -29,25 +42,54 @@ std::string WhiteboardPacket::serialize() const {
   return serialized_message;
 }
 
-void WhiteboardPacket::new_packet(whiteboard::PacketAction packet_action) {
-#ifndef NDEBUG
-  printf(">>> WhiteboardPacket::new_packet\n");
-#endif
+void WhiteboardPacket::new_packet(protobuf::PacketAction packet_action) {
   // packet.set_version(version);
   // packet.set_packet_type(type);
   // packet.set_session_id(session_id);
-  if (packet_action.has_createwhiteboard()) {
-#ifndef NDEBUG
-    printf(">>> TYPE: create whiteboard\n");
-#endif
+  protobuf::PacketAction *action;
+  action = packet.mutable_action();
+  action->Swap(&packet_action);
+  if (action->has_createwhiteboard()) {
     packet.set_packet_type(
         static_cast<uint32_t>(WhiteboardPacketType::createWhiteboard));
-    whiteboard::PacketAction *action = packet.mutable_action();
-    action->Swap(&packet_action);
+  } else if (action->has_createsession()) {
+    packet.set_packet_type(
+        static_cast<uint32_t>(WhiteboardPacketType::createSession));
+
+  } else if (action->has_joinsession()) {
+    packet.set_packet_type(
+        static_cast<uint32_t>(WhiteboardPacketType::JoinSession));
+
+  } else if (action->has_quitsession()) {
+    packet.set_packet_type(
+        static_cast<uint32_t>(WhiteboardPacketType::quitSession));
+
+  } else if (action->has_addelement()) {
+
+  } else if (action->has_modifyelement()) {
+
+  } else if (action->has_savewhiteboard()) {
+
+  } else if (action->has_actionresponse()) {
+    packet.set_packet_type(
+        static_cast<uint32_t>(WhiteboardPacketType::actionResponse));
+  } else if (action->has_broadcast()) {
+
+  } else {
+    printf("Unknown packet type!");
   }
+
+#ifndef NDEBUG
+  auto type_int = packet.packet_type();
+  printf(">>> WhiteboardPacket::new_packet %d %s\n", type_int,
+         packet_action_name[type_int].c_str());
+#endif
 }
 
 void WhiteboardPacket::print() const {
-  std::cout << "   Packet type " << packet.packet_type() << std::endl;
+  std::cout << "----------------------------------\n";
+  std::cout << "   Packet type " << packet_action_name[packet.packet_type()]
+            << std::endl;
   std::cout << "   User id " << packet.user_id() << std::endl;
+  std::cout << "----------------------------------\n";
 }

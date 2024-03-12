@@ -161,24 +161,24 @@ std::string WhiteboardElements::get_stickynote_content() {
   return content;
 }
 
-whiteboard::Element WhiteboardElements::get_protobuf() {
-  whiteboard::Element ele;
+protobuf::Element WhiteboardElements::get_protobuf() {
+  protobuf::Element ele;
   switch (type) {
 
   case WhiteboardElementsType::Path: {
-    whiteboard::Path *path = ele.mutable_path();
+    protobuf::Path *path = ele.mutable_path();
     for (auto &p : get_path_points()) {
-      // whiteboard::Point point;
-      whiteboard::Point *point = path->add_points();
+      // protobuf::Point point;
+      protobuf::Point *point = path->add_points();
       point->set_x(p.x);
       point->set_y(p.y);
     }
     break;
   }
   case WhiteboardElementsType::Line: {
-    whiteboard::Line *line = ele.mutable_line();
-    whiteboard::Point *start = line->mutable_start();
-    whiteboard::Point *end = line->mutable_end();
+    protobuf::Line *line = ele.mutable_line();
+    protobuf::Point *start = line->mutable_start();
+    protobuf::Point *end = line->mutable_end();
 
     auto start_point = get_line_start();
     auto end_point = get_line_end();
@@ -189,10 +189,10 @@ whiteboard::Element WhiteboardElements::get_protobuf() {
     break;
   }
   case WhiteboardElementsType::Circle: {
-    whiteboard::Circle *circle = ele.mutable_circle();
-    whiteboard::Point *center = circle->mutable_center();
+    protobuf::Circle *circle = ele.mutable_circle();
+    protobuf::Point *center = circle->mutable_center();
 
-    // whiteboard::Point *end = line.mutable_end();
+    // protobuf::Point *end = line.mutable_end();
 
     auto circle_center_point = get_circle_center();
     auto circle_radius = get_circle_radius();
@@ -204,12 +204,12 @@ whiteboard::Element WhiteboardElements::get_protobuf() {
     break;
   }
   case WhiteboardElementsType::Triangle: {
-    whiteboard::Triangle *triangle = ele.mutable_triangle();
-    whiteboard::Point *point0 = triangle->mutable_point1();
-    whiteboard::Point *point1 = triangle->mutable_point2();
-    whiteboard::Point *point2 = triangle->mutable_point3();
-    // whiteboard:: triangle->
-    // whiteboard::Point *end = line.mutable_end();
+    protobuf::Triangle *triangle = ele.mutable_triangle();
+    protobuf::Point *point0 = triangle->mutable_point1();
+    protobuf::Point *point1 = triangle->mutable_point2();
+    protobuf::Point *point2 = triangle->mutable_point3();
+    // protobuf:: triangle->
+    // protobuf::Point *end = line.mutable_end();
 
     auto triangle_points = get_triangle_points();
 
@@ -223,10 +223,10 @@ whiteboard::Element WhiteboardElements::get_protobuf() {
     break;
   }
   case WhiteboardElementsType::Square: {
-    whiteboard::Square *square = ele.mutable_square();
-    whiteboard::Point *topleft = square->mutable_topleft();
+    protobuf::Square *square = ele.mutable_square();
+    protobuf::Point *topleft = square->mutable_topleft();
 
-    // whiteboard::Point *end = line.mutable_end();
+    // protobuf::Point *end = line.mutable_end();
 
     auto square_topleft = get_square_topleft();
     auto square_side_length = get_square_side_length();
@@ -237,10 +237,10 @@ whiteboard::Element WhiteboardElements::get_protobuf() {
     break;
   }
   case WhiteboardElementsType::Text: {
-    whiteboard::Text *text = ele.mutable_text();
-    whiteboard::Point *center = text->mutable_center();
+    protobuf::Text *text = ele.mutable_text();
+    protobuf::Point *center = text->mutable_center();
 
-    // whiteboard::Point *end = line.mutable_end();
+    // protobuf::Point *end = line.mutable_end();
 
     auto text_center = get_text_center();
     auto text_content = get_text_content();
@@ -254,10 +254,10 @@ whiteboard::Element WhiteboardElements::get_protobuf() {
     break;
   }
   case WhiteboardElementsType::StickyNote: {
-    whiteboard::StickyNote *note = ele.mutable_stickynote();
-    whiteboard::Point *center = note->mutable_center();
+    protobuf::StickyNote *note = ele.mutable_stickynote();
+    protobuf::Point *center = note->mutable_center();
 
-    // whiteboard::Point *end = line.mutable_end();
+    // protobuf::Point *end = line.mutable_end();
 
     auto stickynote_center = get_stickynote_center();
     auto stickynote_side_length = get_stickynote_side_length();

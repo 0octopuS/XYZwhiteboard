@@ -1,6 +1,6 @@
 syntax = "proto3";
 import "element.proto";
-package whiteboard;
+package protobuf;
 // Whiteboard Protocol Definition
 
 message RegisterReuest{
@@ -34,14 +34,16 @@ message QuitSessionRequest {
 }
 
 message AddElementRequest {
-  whiteboard.Element element = 1;
+  protobuf.Element element = 1;
 }
 
 message ModifyElementRequest {
-  whiteboard.Element orig_element = 1;
-  whiteboard.Element modi_element = 2;
+  protobuf.Element orig_element = 1;
+  protobuf.Element modi_element = 2;
 }
-
+message DeleteElementRequest{
+  protobuf.Element orig_element = 1;
+}
 message SaveWhiteboardRequest {
   uint32 session_id = 1;
   string file_format = 2; // "JPEG" or "PNG"
@@ -79,9 +81,10 @@ message PacketAction {
     QuitSessionRequest quitSession = 4;
     AddElementRequest addElement = 5;
     ModifyElementRequest modifyElement = 6;
-    SaveWhiteboardRequest saveWhiteboard = 7;
-    ActionResponse actionResponse = 8;
-    BroadCast broadcast = 9;
-    TempIDResponse tempIdResponse = 10;
+    DeleteElementRequest deleteElement = 7;
+    SaveWhiteboardRequest saveWhiteboard = 8;
+    ActionResponse actionResponse = 9;
+    BroadCast broadcast = 10;
+    TempIDResponse tempIdResponse = 11;
   }  
 }

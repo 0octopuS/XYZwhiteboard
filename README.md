@@ -33,3 +33,19 @@ Define `WhiteboardElement` class for standard APIs for creating and parsing Elem
 | StickyNote   | ✅             | ✅           | ✅     | ✅    |
 | Null         |               |             | ✅     | ✅    |
 |              |               |             |       |      |
+
+### Action
+
+| Action           | Server logic | Client logic | Packet logic | Test |
+| ---------------- | ------------ | ------------ | ------------ | ---- |
+| createWhiteboard |              |              |              |      |
+| createSession    |              |              |              |      |
+| JoinSession      |              |              |              |      |
+| quitSession      |              |              |              |      |
+| addElement       |              |              |              |      |
+| modifyElement    |              |              |              |      |
+| deleteElement    |              |              |              |      |
+| saveWhiteboard   |              |              |              |      |
+| actionResponse   |              |              |              |      |
+| broadcast        |              |              |              |      |
+| tempIdResponse   |              |              |              |      |

@@ -10,9 +10,9 @@ void WhiteboardPacket::new_create_whiteboard_request(uint32_t user_id) {
 #ifndef NDEBUG
   printf(">>> WhiteboardPacket::new_create_whiteboard_request()\n");
 #endif
-  whiteboard::PacketAction action;
+  protobuf::PacketAction action;
   // type = WhiteboardPacketType::createWhiteboard;
-  whiteboard::CreateWhiteBoardRequest *create_whiteboard_request =
+  protobuf::CreateWhiteBoardRequest *create_whiteboard_request =
       action.mutable_createwhiteboard();
   create_whiteboard_request->set_user_id(user_id);
 #ifndef NDEBUG
@@ -27,9 +27,9 @@ void WhiteboardPacket::new_create_session_request(uint32_t user_id) {
 #ifndef NDEBUG
   printf(">>> WhiteboardPacket::new_create_whiteboard_request()\n");
 #endif
-  whiteboard::PacketAction action;
+  protobuf::PacketAction action;
   // type = WhiteboardPacketType::createWhiteboard;
-  whiteboard::CreateSessionRequest *create_session_request =
+  protobuf::CreateSessionRequest *create_session_request =
       action.mutable_createsession();
   create_session_request->set_user_id(user_id);
 #ifndef NDEBUG
@@ -44,9 +44,9 @@ void WhiteboardPacket::new_quit_session_request(uint32_t user_id) {
 #ifndef NDEBUG
   printf(">>> WhiteboardPacket::new_quit_session_request()\n");
 #endif
-  whiteboard::PacketAction action;
+  protobuf::PacketAction action;
   // type = WhiteboardPacketType::createWhiteboard;
-  whiteboard::QuitSessionRequest *quit_session_request =
+  protobuf::QuitSessionRequest *quit_session_request =
       action.mutable_quitsession();
   quit_session_request->set_user_id(user_id);
 #ifndef NDEBUG
@@ -60,8 +60,8 @@ void WhiteboardPacket::new_add_element_request(WhiteboardElements _element) {
 #ifndef NDEBUG
   printf(">>> WhiteboardPacket::new_quit_session_request()\n");
 #endif
-  whiteboard::PacketAction action;
-  whiteboard::AddElementRequest *add_element_request =
+  protobuf::PacketAction action;
+  protobuf::AddElementRequest *add_element_request =
       action.mutable_addelement();
   WhiteboardElements element;
   auto proto_element = element.get_protobuf();

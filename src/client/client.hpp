@@ -1,9 +1,8 @@
+#include "../base/exception.hpp"
 #include "../base/packet.hpp" // Include your WhiteboardPacket class
-#include "google/protobuf/io/coded_stream.h"
-#include "google/protobuf/io/zero_copy_stream_impl.h"
 #include <boost/asio.hpp>
-#include <cstdio>
-#include <iostream>
+#include <boost/bind.hpp>
+#include <queue>
 using namespace std;
 
 using boost::asio::ip::tcp;
@@ -13,45 +12,75 @@ private:
   uint32_t version = 1;
   uint32_t user_id = 0;
   boost::asio::io_context io_context;
+  tcp::resolver resolver;
   tcp::socket socket;
+  // boost::asio::streambuf receive_buffer;
+  bool connected_;
+  std::mutex connected_mutex_;
+  std::condition_variable connected_cv_;
+  std::thread receive_thread_;
+  std::thread send_thread_;
+  // char receive_buffer_[1024];
+  std::queue<WhiteboardPacket> send_queue_;
+  boost::asio::ip::tcp::resolver::iterator iter;
 
 public:
   WhiteboardClient(const std::string &server_ip, unsigned short port)
-      : socket(io_context) {
-    tcp::resolver resolver(io_context);
-    tcp::resolver::results_type endpoints =
-        resolver.resolve(server_ip, std::to_string(port));
-    boost::asio::connect(socket, endpoints);
-  }
-
-  void send_packet(const WhiteboardPacket &packet) {
-    // Serialize WhiteboardPacket to a buffer
-    // std::ostringstream oss;
-    boost::asio::streambuf request;
-    std::ostream os(&request);
-    {
-      ::google::protobuf::io::OstreamOutputStream raw_output_stream(&os);
-      ::google::protobuf::io::CodedOutputStream coded_output_stream(
-          &raw_output_stream);
-
-      packet.serialize(&coded_output_stream);
-    }
-
-    // serialize the WhiteboardPacket instance into the buffer
-    // oss << packet.serialize();
-    // Send the buffer over the socket
-    // std::string data = oss.str();
-    // size_t len = socket.se()(request.data(), endpoint, 0, error);
-
-    size_t byte = boost::asio::write(socket, request);
+      : io_context(), resolver(io_context), socket(io_context),
+        connected_(false), connected_mutex_(), connected_cv_() {
 #ifndef NDEBUG
-    printf(">>> send_packet: %zu\n", byte);
-    printf(">>> send packet type");
-    packet.print();
+    DEBUG_MSG;
 #endif
+    iter = resolver.resolve(server_ip, std::to_string(port));
+    // tcp::resolver::results_type endpoints =
+    // resolver.resolve(server_ip, std::to_string(port));
+    // boost::asio::ip::tcp::resolver::query query(server_ip,
+    // std::to_string(port));
+
+    boost::system::error_code error;
+    // boost::asio::async_connect(socket,
+    // iter,
+    //                            boost::bind(&WhiteboardClient::handle_connect,
+    //                                        this,
+    //                                        boost::asio::placeholders::error));
+    boost::asio::connect(socket, iter, error);
+    if (!error) {
+      // Start asynchronous
+      // receive operation
+      std::lock_guard<std::mutex> lock(connected_mutex_);
+      connected_ = true;
+      connected_cv_.notify_all(); // start_receive();
+      printf("Connected, "
+             "notify.\n");
+    } else {
+      // Handle connection error
+      std::cerr << "Error connecting "
+                   "to server: "
+                << error.message() << std::endl;
+    }
+    // boost::asio::async_connect(socket,
+    // iter,
+    //                            boost::bind(&WhiteboardClient::handle_connect,
+    //                                        this,
+    //                                        boost::asio::placeholders::error));
   }
+
+  ~WhiteboardClient() {
+    close(); // Gracefully close connection in destructor
+    // receive_thread_.join();
+    // send_thread_.join();
+    // thread_.join(); // Wait for thread to finish
+  }
+
+  void send_packet(const WhiteboardPacket &packet);
   void send_create_whiteboard_request();
-  void send_add_element_request();
-  void handle_response();
-  void close() { socket.close(); }
+  void send_join_session_request() {}
+  void send_add_element_request(WhiteboardElements _ele);
+  bool handle_receive();
+  void handle_connect(const boost::system::error_code &error);
+  protobuf::whiteboardPacket parse_packet(boost::asio::streambuf *buffer);
+  void start_receive();
+  void handle_send();
+  // void start(const std::string &server_ip, unsigned short port);
+  void close();
 };

@@ -9,15 +9,17 @@
 enum class WhiteboardPacketType : uint32_t {
   // client packet
   createWhiteboard = 1,
-  createShareUrl = 2,
-  quitWhiteboard = 3,
-  addElement = 4,
-  modifyElement = 5,
-  deleteElement = 6,
+  createSession = 2,
+  JoinSession = 3,
+  quitSession = 4,
+  addElement = 5,
+  modifyElement = 6,
+  deleteElement = 7,
+  saveWhiteboard = 8,
   // server packet
-  broadcast = 7,
-  confirmAction = 8,
-  error = 9
+  actionResponse = 9,
+  broadcast = 10,
+  tempIdResponse = 11
 };
 
 // The WhiteboardPacket class provide standard methods to create,
@@ -29,7 +31,7 @@ private:
   // WhiteboardPacketType type;
   // uint32_t user_id;
   // uint32_t session_id;
-  whiteboard::whiteboardPacket packet;
+  protobuf::whiteboardPacket packet;
 
 public:
   // WhiteboardPacket(
@@ -56,10 +58,10 @@ public:
   void new_modify_element_request();
   void new_delete_element_request();
   void new_broadcast_request();
-  void new_confirm_action_request();
+  void new_action_response(bool success, std::string msg);
   void new_error_request();
 
-  void new_packet(whiteboard::PacketAction packet_action);
+  void new_packet(protobuf::PacketAction packet_action);
   // methods to parse/decode packet (protobuf -> C++ class)
 
   // methods to send packet
