@@ -2,8 +2,20 @@
 #include "action.pb.h"
 #include "packet.hpp"
 #include "packet.pb.h"
+#include <cstdint>
 #include <cstdio>
 #include <iostream>
+
+void WhiteboardPacket::new_temp_id_response(bool success, uint32_t user_id) {
+#ifndef NDEBUG
+  printf(">>> WhiteboardPacket::new_temp_id_response()\n");
+#endif
+  protobuf::PacketAction action;
+  protobuf::TempIDResponse *tempid_response = action.mutable_tempidresponse();
+  tempid_response->set_user_id(user_id);
+  tempid_response->set_success(success);
+  new_packet(action);
+}
 
 void WhiteboardPacket::new_action_response(bool success, std::string msg) {
 #ifndef NDEBUG

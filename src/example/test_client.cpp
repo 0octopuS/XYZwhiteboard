@@ -77,8 +77,8 @@ int main() {
     // Simulate some work on the main thread while the client runs
     std::cout << "Doing some work on the main thread..." << std::endl;
     while (true) {
-      bool received = client.handle_receive();
-      if (received)
+      bool received1 = client.handle_receive();
+      if (received1)
         break;
     }
     // std::this_thread::sleep_for(std::chrono::seconds(3));

@@ -11,7 +11,6 @@ message RegisterReuest{
 message LoginReuest{
   string username = 1;
   string password_hash = 2;
-  string token = 3;
 }
 
 message CreateWhiteBoardRequest {
@@ -24,13 +23,13 @@ message CreateSessionRequest {
 }
 
 message JoinSessionRequest {
-  uint32 session_id = 1;
-  uint32 user_id = 2;
+  uint32 user_id = 1;
+  uint32 session_id = 2;
 }
 
 message QuitSessionRequest {
-  uint32 session_id = 1;
-  uint32 user_id = 2;
+  uint32 user_id = 1;
+  uint32 session_id = 2;
 }
 
 message AddElementRequest {
@@ -55,8 +54,14 @@ message SaveWhiteboardRequest {
 // Message to represent a response to a whiteboard action request
 message RegisterResponse{
   bool success = 1;
-  string token = 2;
+  uint32 uid = 2;
 }
+
+message LoginResponse{
+  bool success = 1;
+  uint32 uid = 2;
+}
+
 
 message ActionResponse {
   bool success = 1;

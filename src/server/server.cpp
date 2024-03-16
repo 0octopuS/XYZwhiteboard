@@ -38,10 +38,17 @@ WhiteboardServer::parse_packet(boost::asio::streambuf *buffer) {
       &istream_input_stream);
   uint32_t messageSize;
   code_input_stream.ReadVarint32(&messageSize);
+  std::string serializedData;
+  serializedData.resize(messageSize);
+  if (!code_input_stream.ReadRaw(serializedData.data(), messageSize)) {
+    std::cout << "Failed to read serialized protobuf data" << std::endl;
+  }
 #ifndef NDEBUG
   std::cout << "| Received data: " << messageSize << std::endl;
 #endif
-  if (!packet.ParseFromCodedStream(&code_input_stream)) {
+  if (!packet.ParseFromString(serializedData))
+  // if (!packet.ParseFromCodedStream(&code_input_stream))
+  {
     std::cout << "| Failed to parse packet\n";
   } else {
     std::cout << "| Parse success\n";
@@ -91,27 +98,53 @@ void WhiteboardServer::handle_connection(tcp::socket socket) {
     std::cout << "Exception in handle_connection: " << e.what() << std::endl;
   }
 }
+int getNextSequence(mongocxx::client &client, const std::string &db_name,
+                    const std::string &sequence_collection_name) {
+  auto collection = client[db_name][sequence_collection_name];
+  bsoncxx::stdx::optional<bsoncxx::document::value> maybe_result =
+      collection.find_one_and_update(
+          bsoncxx::builder::stream::document{}
+              << bsoncxx::builder::stream::finalize,
+          bsoncxx::builder::stream::document{}
+              << "$inc" << bsoncxx::builder::stream::open_document << "seq" << 1
+              << bsoncxx::builder::stream::close_document
+              << bsoncxx::builder::stream::finalize,
+          mongocxx::options::find_one_and_update{}.upsert(true));
 
-uint32_t WhiteboardServer::handle_assign_user_id() {
+  if (maybe_result) {
+    auto doc = maybe_result.value().view();
+    if (doc["seq"]) {
+      return doc["seq"].get_int32().value;
+    }
+  }
+  return 0; // Default value if sequence is not found
+}
+uint32_t WhiteboardServer::handle_assign_user_id(tcp::socket &tcp_socket) {
   uint32_t temp_user_id = 1; // change to a RNG
   std::cout << (temp_user_id);
-  // try {
-  //   protobuf::whiteboardPacket response;
-  //   protobuf::TempIDResponse *response_action =
-  //       response.mutable_action()->mutable_tempidresponse();
-  //   response_action->set_success(true);
-  //   response_action->set_user_id(temp_user_id);
-  //   boost::asio::streambuf response_stream;
-  //   std::ostream os(&response_stream);
-  //   response.SerializeToOstream(&os);
-  //   // Send response to client
-  //   boost::asio::write(socket, response_stream);
-  // } catch (const std::exception &e) {
-  //   std::cerr << "Exception in handle_assign_user_id: " << e.what()
-  //             << std::endl;
-  // }
+  int uid = getNextSequence(mongoclient, "whiteboards", "user_collection");
 
-  return temp_user_id;
+  bsoncxx::document::value document = bsoncxx::builder::stream::document{}
+                                      << "_id" << uid << "username"
+                                      << ""
+                                      << "password_hash"
+                                      << ""
+                                      << bsoncxx::builder::stream::finalize;
+
+  auto insert_result = user_collection.insert_one(document.view());
+
+#ifndef NDEBUG
+  std::cout << "User with ID " << uid << " has been inserted." << std::endl;
+#endif
+  WhiteboardPacket response(version);
+
+  bool success = insert_result
+                     ? insert_result.value().result().inserted_count() == 1
+                     : false;
+  // TODO: exception handle should be added here
+  response.new_temp_id_response(success, uid);
+  send_packet(tcp_socket, response);
+  return uid;
 }
 
 void WhiteboardServer::handle_create_whiteboard_request(
@@ -121,12 +154,22 @@ void WhiteboardServer::handle_create_whiteboard_request(
   std::cout << "Received CreateWhiteBoardRequest with user_id: " << user_id
             << std::endl;
 
-  // If the user is anonymous, then server first assign
+  // Step 1: If the user is anonymous, then server first assign
   // a temporary id; send a packet back to client
   // them connect the user_id with new whiteboard.
   if (request.user_id() == 0) {
-    user_id = handle_assign_user_id();
+    user_id = handle_assign_user_id(tcp_socket);
   }
+
+  // Step 2: Create whiteboard, return to user
+
+  auto doc_value = make_document(
+      kvp("uid", static_cast<int>(user_id)), kvp("elements", make_array()),
+      kvp("connected_user_num", 1),
+      kvp("created_at",
+          bsoncxx::types::b_date(std::chrono::system_clock::now())));
+  ;
+  auto insert_one_result = whiteboard_collection.insert_one(doc_value.view());
 
   WhiteboardPacket response(version);
   response.new_action_response(true,

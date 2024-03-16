@@ -10,7 +10,7 @@ void WhiteboardPacket::new_create_whiteboard_request(uint32_t user_id) {
 #ifndef NDEBUG
   printf(">>> WhiteboardPacket::new_create_whiteboard_request()\n");
 #endif
-  protobuf::PacketAction action;
+  protobuf::PacketAction action{};
   // type = WhiteboardPacketType::createWhiteboard;
   protobuf::CreateWhiteBoardRequest *create_whiteboard_request =
       action.mutable_createwhiteboard();

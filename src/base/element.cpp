@@ -251,6 +251,8 @@ protobuf::Element WhiteboardElements::get_protobuf() {
     break;
   }
   case WhiteboardElementsType::Picture: {
+    // protobuf::Picture *pic = ele.mutable_picture();
+    // pic -> set
     break;
   }
   case WhiteboardElementsType::StickyNote: {

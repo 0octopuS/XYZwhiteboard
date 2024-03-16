@@ -6,7 +6,6 @@ package protobuf;
 message whiteboardPacket {
     uint32 version = 1;
     uint32 packet_type = 2;
-    uint32 session_id = 3;   // Session ID
-    uint32 user_id = 4;      // User ID
-    protobuf.PacketAction action = 5; // Payload
+    uint32 packet_id = 3;
+    protobuf.PacketAction action = 4; // Payload
 }

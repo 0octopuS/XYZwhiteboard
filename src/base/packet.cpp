@@ -43,7 +43,7 @@ std::string WhiteboardPacket::serialize() const {
 }
 
 void WhiteboardPacket::new_packet(protobuf::PacketAction packet_action) {
-  // packet.set_version(version);
+  packet.set_version(version);
   // packet.set_packet_type(type);
   // packet.set_session_id(session_id);
   protobuf::PacketAction *action;
@@ -58,23 +58,33 @@ void WhiteboardPacket::new_packet(protobuf::PacketAction packet_action) {
 
   } else if (action->has_joinsession()) {
     packet.set_packet_type(
-        static_cast<uint32_t>(WhiteboardPacketType::JoinSession));
+        static_cast<uint32_t>(WhiteboardPacketType::joinSession));
 
   } else if (action->has_quitsession()) {
     packet.set_packet_type(
         static_cast<uint32_t>(WhiteboardPacketType::quitSession));
 
   } else if (action->has_addelement()) {
+    packet.set_packet_type(
+        static_cast<uint32_t>(WhiteboardPacketType::addElement));
 
   } else if (action->has_modifyelement()) {
-
+    packet.set_packet_type(
+        static_cast<uint32_t>(WhiteboardPacketType::modifyElement));
   } else if (action->has_savewhiteboard()) {
+    packet.set_packet_type(
+        static_cast<uint32_t>(WhiteboardPacketType::saveWhiteboard));
 
   } else if (action->has_actionresponse()) {
     packet.set_packet_type(
         static_cast<uint32_t>(WhiteboardPacketType::actionResponse));
   } else if (action->has_broadcast()) {
+    packet.set_packet_type(
+        static_cast<uint32_t>(WhiteboardPacketType::broadcast));
 
+  } else if (action->has_tempidresponse()) {
+    packet.set_packet_type(
+        static_cast<uint32_t>(WhiteboardPacketType::tempIdResponse));
   } else {
     printf("Unknown packet type!");
   }
@@ -90,6 +100,5 @@ void WhiteboardPacket::print() const {
   std::cout << "----------------------------------\n";
   std::cout << "   Packet type " << packet_action_name[packet.packet_type()]
             << std::endl;
-  std::cout << "   User id " << packet.user_id() << std::endl;
   std::cout << "----------------------------------\n";
 }

@@ -10,7 +10,7 @@ enum class WhiteboardPacketType : uint32_t {
   // client packet
   createWhiteboard = 1,
   createSession = 2,
-  JoinSession = 3,
+  joinSession = 3,
   quitSession = 4,
   addElement = 5,
   modifyElement = 6,
@@ -58,6 +58,7 @@ public:
   void new_modify_element_request();
   void new_delete_element_request();
   void new_broadcast_request();
+  void new_temp_id_response(bool success, uint32_t user_id);
   void new_action_response(bool success, std::string msg);
   void new_error_request();
 
