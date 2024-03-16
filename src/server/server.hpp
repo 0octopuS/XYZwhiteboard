@@ -37,6 +37,7 @@ private:
 
   protobuf::whiteboardPacket parse_packet(boost::asio::streambuf *buffer);
 
+  // Different Methods for Example
   uint32_t handle_assign_user_id(tcp::socket &tcp_socket);
   void handle_create_whiteboard_request(
       const protobuf::CreateWhiteBoardRequest &request, tcp::socket &socket);

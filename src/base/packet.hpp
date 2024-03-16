@@ -42,6 +42,10 @@ public:
   //  type(_type), user_id(_user_id),
   // session_id(_session_id) {}
   WhiteboardPacket(uint32_t _version = 1) : version(_version) {}
+  WhiteboardPacket(protobuf::whiteboardPacket &_packet, uint32_t _version = 1)
+      : version(_version) {
+    std::swap(_packet, packet);
+  }
   // ~WhiteboardPacket() { packet.release_action(); }
   // Methods for accessing packet data
   // uint8_t get_sessionId() const { return session_id; }

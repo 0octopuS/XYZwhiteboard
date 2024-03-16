@@ -81,6 +81,7 @@ int main() {
       if (received1)
         break;
     }
+    std::cout << "Recevie packet len:" << client.received_queue.size() << "\n";
     // std::this_thread::sleep_for(std::chrono::seconds(3));
     // Close the connection after some time
     client.close();

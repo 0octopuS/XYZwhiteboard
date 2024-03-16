@@ -17,10 +17,12 @@ private:
   // boost::asio::streambuf receive_buffer;
   bool connected_;
   // char receive_buffer_[1024];
-  std::queue<WhiteboardPacket> send_queue_;
+  std::queue<WhiteboardPacket> send_queue;
+
   boost::asio::ip::tcp::resolver::iterator iter;
 
 public:
+  std::queue<WhiteboardPacket> received_queue;
   WhiteboardClient(const std::string &server_ip, unsigned short port)
       : io_context(), resolver(io_context), socket(io_context),
         connected_(false) {

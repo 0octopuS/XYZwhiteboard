@@ -44,6 +44,8 @@ bool WhiteboardClient::handle_receive() {
     throw ClientReceivedWrongPacketType();
     break;
   }
+
+  received_queue.emplace(WhiteboardPacket(received_packet));
   return true;
 }
 
@@ -79,7 +81,7 @@ void WhiteboardClient::send_create_whiteboard_request() {
   send_packet(packet);
   // send_queue_.push(packet);
 #ifndef NDEBUG
-  printf(">>> send_queue len %zu\n", send_queue_.size());
+  printf(">>> send_queue len %zu\n", send_queue.size());
 #endif
 }
 
