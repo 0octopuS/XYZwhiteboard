@@ -84,7 +84,8 @@ public:
   float get_stickynote_side_length();
   std::string get_stickynote_content();
   // For general use
-  protobuf::Element get_protobuf();
+  protobuf::Element to_protobuf();
+  protobuf::Element from_protobuf();
   WhiteboardElementsType get_type() { return type; }
   void print();
 };

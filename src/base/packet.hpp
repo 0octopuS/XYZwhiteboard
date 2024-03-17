@@ -28,8 +28,8 @@ enum class WhiteboardPacketType : uint32_t {
 class WhiteboardPacket {
 private:
   uint32_t version;
-  // WhiteboardPacketType type;
-  // uint32_t user_id;
+  WhiteboardPacketType type;
+  uint32_t packet_id;
   // uint32_t session_id;
   protobuf::whiteboardPacket packet;
 
@@ -41,10 +41,18 @@ public:
   //     : version(_version) {}
   //  type(_type), user_id(_user_id),
   // session_id(_session_id) {}
-  WhiteboardPacket(uint32_t _version = 1) : version(_version) {}
-  WhiteboardPacket(protobuf::whiteboardPacket &_packet, uint32_t _version = 1)
-      : version(_version) {
+  WhiteboardPacket(uint32_t _version, WhiteboardPacketType _type,
+                   uint32_t _packet_id)
+      : version(_version), type(_type), packet_id(_packet_id) {}
+  WhiteboardPacket(protobuf::whiteboardPacket &_packet) {
+    type = static_cast<WhiteboardPacketType>(packet.packet_type());
     std::swap(_packet, packet);
+    packet.set_packet_id(packet_id);
+  }
+  WhiteboardPacket(const protobuf::whiteboardPacket &_packet) {
+    type = static_cast<WhiteboardPacketType>(packet.packet_type());
+    packet = std::move(_packet);
+    packet.set_packet_id(packet_id);
   }
   // ~WhiteboardPacket() { packet.release_action(); }
   // Methods for accessing packet data
@@ -56,11 +64,16 @@ public:
   // methods to create packet
 
   void new_create_whiteboard_request(uint32_t user_id);
-  void new_create_session_request(uint32_t user_id);
-  void new_quit_session_request(uint32_t user_id);
-  void new_add_element_request(WhiteboardElements _element);
-  void new_modify_element_request();
-  void new_delete_element_request();
+  void new_create_session_request(uint32_t user_id, std::string whiteboard_id);
+  void new_join_session_request(uint32_t user_id, std::string whiteboard_id);
+  void new_quit_session_request(uint32_t user_id, std::string whiteboard_id);
+  void new_add_element_request(uint32_t user_id, std::string whiteboard_id,
+                               WhiteboardElements _element);
+  void new_modify_element_request(uint32_t user_id, std::string whiteboard_id,
+                                  WhiteboardElements _orig_element,
+                                  WhiteboardElements _element);
+  void new_delete_element_request(uint32_t user_id, std::string whiteboard_id,
+                                  WhiteboardElements _orig_element);
   void new_broadcast_request();
   void new_temp_id_response(bool success, uint32_t user_id);
   void new_action_response(bool success, std::string msg);
@@ -69,6 +82,10 @@ public:
   void new_packet(protobuf::PacketAction packet_action);
   // methods to parse/decode packet (protobuf -> C++ class)
 
+  // methods to get packet info
+  const uint32_t get_packet_id() const { return packet_id; }
+  const WhiteboardPacketType get_packet_type() const { return type; }
+  const std::string get_packet_type_name();
   // methods to send packet
   std::string serialize() const;
   void serialize(std::ostream *) const;

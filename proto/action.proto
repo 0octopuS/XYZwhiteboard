@@ -3,45 +3,41 @@ import "element.proto";
 package protobuf;
 // Whiteboard Protocol Definition
 
-message RegisterReuest{
-  string username = 1;
-  string password_hash = 2;
-}
-
-message LoginReuest{
-  string username = 1;
-  string password_hash = 2;
-}
-
 message CreateWhiteBoardRequest {
   uint32 user_id = 1;
 }
 
 message CreateSessionRequest {
   uint32 user_id = 1;
-  uint32 whiteboard_id = 2;
+  string whiteboard_id = 2;
 }
 
 message JoinSessionRequest {
   uint32 user_id = 1;
-  uint32 session_id = 2;
+  string whiteboard_id = 2;
 }
 
 message QuitSessionRequest {
   uint32 user_id = 1;
-  uint32 session_id = 2;
+  string whiteboard_id = 2;
 }
 
 message AddElementRequest {
-  protobuf.Element element = 1;
+  uint32 user_id = 1;
+  string whiteboard_id = 2;
+  protobuf.Element element = 3;
 }
 
 message ModifyElementRequest {
-  protobuf.Element orig_element = 1;
-  protobuf.Element modi_element = 2;
+  uint32 user_id = 1;
+  string whiteboard_id = 2;
+  protobuf.Element orig_element = 3;
+  protobuf.Element modi_element = 4;
 }
 message DeleteElementRequest{
-  protobuf.Element orig_element = 1;
+  uint32 user_id = 1;
+  string whiteboard_id = 2;
+  protobuf.Element orig_element = 3;
 }
 message SaveWhiteboardRequest {
   uint32 session_id = 1;
@@ -77,6 +73,15 @@ message TempIDResponse {
   uint32 user_id = 2;
 }
 
+message RegisterReuest{
+  string username = 1;
+  string password_hash = 2;
+}
+
+message LoginReuest{
+  string username = 1;
+  string password_hash = 2;
+}
 
 message PacketAction {
   oneof action_type {

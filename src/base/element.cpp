@@ -161,7 +161,7 @@ std::string WhiteboardElements::get_stickynote_content() {
   return content;
 }
 
-protobuf::Element WhiteboardElements::get_protobuf() {
+protobuf::Element WhiteboardElements::to_protobuf() {
   protobuf::Element ele;
   switch (type) {
 

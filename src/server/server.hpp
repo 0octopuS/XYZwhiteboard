@@ -1,4 +1,5 @@
 #include "../base/packet.hpp"
+#include "action.pb.h"
 #include "mongocxx/uri.hpp"
 #include "packet.pb.h"
 #include "thread_pool.hpp"
@@ -13,6 +14,8 @@
 #include <mongocxx/stdx.hpp>
 #include <mongocxx/uri.hpp>
 #include <thread>
+#include <unordered_map>
+#include <vector>
 using boost::asio::ip::tcp;
 using bsoncxx::builder::basic::kvp;
 using bsoncxx::builder::basic::make_array;
@@ -31,7 +34,27 @@ private:
   mongocxx::v_noabi::database whiteboard_db;
   mongocxx::v_noabi::collection whiteboard_collection;
   mongocxx::v_noabi::collection user_collection;
+  std::unordered_map<std::string, std::set<tcp::socket *>>
+      whiteboard_sessions; // Mapping of whiteboard ID to connected sockets
+  std::mutex map_mutex;
+  void add_socket_to_whiteboard(const std::string &whiteboard_id,
+                                tcp::socket *socket) {
+    std::lock_guard<std::mutex> lock(
+        map_mutex); // Lock the mutex to ensure thread safety
+    whiteboard_sessions[whiteboard_id].insert(socket);
+  }
 
+  void remove_socket_from_whiteboard(const std::string &whiteboard_id,
+                                     tcp::socket *tcp_socket) {
+    auto it = whiteboard_sessions.find(whiteboard_id);
+    if (it != whiteboard_sessions.end()) {
+      auto &socket_set = it->second;
+      socket_set.erase(tcp_socket);
+      if (socket_set.empty()) {
+        whiteboard_sessions.erase(it);
+      }
+    }
+  }
   void handle_connection(tcp::socket socket);
   void accept_connections();
 
@@ -39,12 +62,22 @@ private:
 
   // Different Methods for Example
   uint32_t handle_assign_user_id(tcp::socket &tcp_socket);
-  void handle_create_whiteboard_request(
-      const protobuf::CreateWhiteBoardRequest &request, tcp::socket &socket);
-
   void
-  handle_create_session_request(const protobuf::CreateSessionRequest &request);
+  handle_create_whiteboard_request(const protobuf::whiteboardPacket &packet,
+                                   tcp::socket &socket);
 
+  void handle_create_session_request(const protobuf::whiteboardPacket &packet,
+                                     tcp::socket &socket);
+
+  void handle_join_session_request(const protobuf::whiteboardPacket &packet,
+                                   tcp::socket &tcp_socket);
+
+  void handle_quit_session_request(const protobuf::whiteboardPacket &packet,
+                                   tcp::socket &tcp_socket);
+
+  void handle_add_element_request(const protobuf::AddElementRequest &request);
+
+  // General method for send packet
   void send_packet(tcp::socket &tcp_socket, const WhiteboardPacket &packet);
 
 public:

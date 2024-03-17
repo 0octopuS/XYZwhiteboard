@@ -1,10 +1,12 @@
 #include "server.hpp"
 #include "action.pb.h"
 #include "packet.pb.h"
+#include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/read.hpp>
 #include <boost/asio/read_until.hpp>
 #include <cstdint>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
+#include <iostream>
 
 void WhiteboardServer::accept_connections() {
   try {
@@ -82,11 +84,16 @@ void WhiteboardServer::handle_connection(tcp::socket socket) {
 
       switch (static_cast<WhiteboardPacketType>(packet.packet_type())) {
       case WhiteboardPacketType::createWhiteboard: // CreateWhiteBoardRequest
-        handle_create_whiteboard_request(packet.action().createwhiteboard(),
-                                         socket);
+        handle_create_whiteboard_request(packet, socket);
         break;
       case WhiteboardPacketType::createSession: // CreateSessionRequest
-        handle_create_session_request(packet.action().createsession());
+        handle_create_session_request(packet, socket);
+        break;
+      case WhiteboardPacketType::joinSession:
+        handle_join_session_request(packet, socket);
+        break;
+      case WhiteboardPacketType::quitSession:
+        handle_quit_session_request(packet, socket);
         break;
       // Add cases for other packet types...
       default:
@@ -136,7 +143,11 @@ uint32_t WhiteboardServer::handle_assign_user_id(tcp::socket &tcp_socket) {
 #ifndef NDEBUG
   std::cout << "User with ID " << uid << " has been inserted." << std::endl;
 #endif
-  WhiteboardPacket response(version);
+  // When the type is tempIdResponse, it is a server spontaneous behavior.
+  // Client does not have a corresponding request, so the packet_id is not
+  // necessary here.
+  WhiteboardPacket response(version, WhiteboardPacketType::tempIdResponse,
+                            rand());
 
   bool success = insert_result
                      ? insert_result.value().result().inserted_count() == 1
@@ -148,11 +159,13 @@ uint32_t WhiteboardServer::handle_assign_user_id(tcp::socket &tcp_socket) {
 }
 
 void WhiteboardServer::handle_create_whiteboard_request(
-    const protobuf::CreateWhiteBoardRequest &request, tcp::socket &tcp_socket) {
+    const protobuf::whiteboardPacket &packet, tcp::socket &tcp_socket) {
   // Handle CreateWhiteBoardRequest
+  auto packet_id = packet.packet_id();
+  auto request = packet.action().createwhiteboard();
   auto user_id = request.user_id();
   std::cout << "Received CreateWhiteBoardRequest with user_id: " << user_id
-            << std::endl;
+            << "packet_id: " << packet_id << std::endl;
 
   // Step 1: If the user is anonymous, then server first assign
   // a temporary id; send a packet back to client
@@ -170,35 +183,173 @@ void WhiteboardServer::handle_create_whiteboard_request(
           bsoncxx::types::b_date(std::chrono::system_clock::now())));
   ;
   auto insert_one_result = whiteboard_collection.insert_one(doc_value.view());
-
-  WhiteboardPacket response(version);
-  response.new_action_response(true,
-                               "wwwwwwww Successfully created whiteboard!");
+  WhiteboardPacket response(version, WhiteboardPacketType::actionResponse,
+                            packet_id);
+  if (insert_one_result) {
+    auto doc_id = insert_one_result->inserted_id().get_oid();
+    // Now, you can construct your response message using the inserted ObjectId
+    std::cout << "***" << doc_id.value.to_string() << '\n';
+    response.new_action_response(true, doc_id.value.to_string());
+  } else {
+    // Handle insertion failure
+    response.new_action_response(false, "Fail to create whiteboard document");
+  }
   send_packet(tcp_socket, response);
-
-  // try {
-  //   protobuf::whiteboardPacket response;
-  //   protobuf::ActionResponse *response_action =
-  //       response.mutable_action()->mutable_actionresponse();
-  //   response_action->set_success(true);
-  //   response_action->set_message("Whiteboard created successfully");
-  //   boost::asio::streambuf response_stream;
-  //   std::ostream os(&response_stream);
-  //   response.SerializeToOstream(&os);
-
-  //   // Send response to client
-  //   boost::asio::write(socket, response_stream);
-  // } catch (const std::exception &e) {
-  //   std::cerr << "Exception in handle_create_whiteboard_request: " <<
-  //   e.what()
-  //             << std::endl;
-  // }
 }
 
+// TODO: unfinished function
 void WhiteboardServer::handle_create_session_request(
-    const protobuf::CreateSessionRequest &request) {
+    const protobuf::whiteboardPacket &packet, tcp::socket &tcp_socket) {
   // Handle CreateSessionRequest
   std::cout << "Received CreateSessionRequest\n";
+  auto request = packet.action().createsession();
+  auto packet_id = packet.packet_id();
+  auto user_id = static_cast<int>(request.user_id());
+  auto whiteboard_id = request.whiteboard_id();
+
+  // Step 1. fetch from database to see if the client is the admin
+  auto filter = bsoncxx::builder::stream::document{}
+                << "_id" << bsoncxx::oid{whiteboard_id}
+                << bsoncxx::builder::stream::finalize;
+  auto result = whiteboard_collection.find_one(filter.view());
+  WhiteboardPacket response(version, WhiteboardPacketType::actionResponse,
+                            packet_id);
+  if (result) {
+    auto whiteboard_doc = result->view();
+    auto uid_field = whiteboard_doc["uid"];
+    if (uid_field &&
+        uid_field.get_int32().value == static_cast<int32_t>(user_id)) {
+      // User ID matches, send success response
+      add_socket_to_whiteboard(whiteboard_id, &tcp_socket);
+      auto update = bsoncxx::builder::stream::document{}
+                    << "$set" << bsoncxx::builder::stream::open_document
+                    << "active_user_ids" << bsoncxx::builder::stream::open_array
+                    << user_id << bsoncxx::builder::stream::close_array
+                    << bsoncxx::builder::stream::close_document
+                    << bsoncxx::builder::stream::finalize;
+      whiteboard_collection.update_one(filter.view(), update.view());
+      response.new_action_response(true, "Session created successfully");
+      // Send response to the client (implementation of sending response to
+      // socket goes here)
+    } else {
+      // User ID does not match, send failure response
+      response.new_action_response(false, "User ID does not match");
+      // Send response to the client (implementation of sending response to
+      // socket goes here)
+    }
+  } else {
+    // Whiteboard not found, send failure response
+    response.new_action_response(false, "Whiteboard not found");
+    // Send response to the client (implementation of sending response to socket
+    // goes here)
+  }
+  send_packet(tcp_socket, response);
+}
+
+void WhiteboardServer::handle_join_session_request(
+    const protobuf::whiteboardPacket &packet, tcp::socket &tcp_socket) {
+  // Handle JoinSessionRequest
+  std::cout << "Received JoinSessionRequest\n";
+  auto request = packet.action().joinsession();
+  auto packet_id = packet.packet_id();
+  auto user_id = static_cast<int>(request.user_id());
+  auto whiteboard_id = request.whiteboard_id();
+
+  // Step 1. Fetch from database to see if the whiteboard exists
+  auto filter = bsoncxx::builder::stream::document{}
+                << "_id" << bsoncxx::oid{whiteboard_id}
+                << bsoncxx::builder::stream::finalize;
+  auto result = whiteboard_collection.find_one(filter.view());
+  WhiteboardPacket response(version, WhiteboardPacketType::actionResponse,
+                            packet_id);
+  if (result) {
+    auto whiteboard_doc = result->view();
+    auto active_user_ids_field = whiteboard_doc["active_user_ids"];
+    if (active_user_ids_field) {
+      // Step 2. Add the socket to the whiteboard
+      add_socket_to_whiteboard(whiteboard_id, &tcp_socket);
+
+      // Step 3. Update active_user_ids field in the whiteboard document
+      auto update = bsoncxx::builder::stream::document{}
+                    << "$addToSet" << bsoncxx::builder::stream::open_document
+                    << "active_user_ids" << user_id
+                    << bsoncxx::builder::stream::close_document
+                    << bsoncxx::builder::stream::finalize;
+      whiteboard_collection.update_one(filter.view(), update.view());
+      // Success response
+      response.new_action_response(true, "Joined session successfully");
+    } else {
+      // Admin ID not found, send failure response
+      response.new_action_response(false, "Whiteboard is not in shared status");
+    }
+  } else {
+    // Whiteboard not found, send failure response
+    response.new_action_response(false, "Whiteboard not found");
+  }
+  send_packet(tcp_socket, response);
+}
+
+void WhiteboardServer::handle_quit_session_request(
+    const protobuf::whiteboardPacket &packet, tcp::socket &tcp_socket) {
+  // Handle QuitSessionRequest
+  std::cout << "Received QuitSessionRequest\n";
+  auto request = packet.action().quitsession();
+  auto packet_id = packet.packet_id();
+  auto user_id = static_cast<int>(request.user_id());
+  auto whiteboard_id = request.whiteboard_id();
+
+  // Step 1. Remove the socket from the whiteboard_sessions
+  remove_socket_from_whiteboard(whiteboard_id, &tcp_socket);
+
+  // Step 2. Update active_user_ids field in the whiteboard document
+  auto filter = bsoncxx::builder::stream::document{}
+                << "_id" << bsoncxx::oid{whiteboard_id}
+                << bsoncxx::builder::stream::finalize;
+  auto update = bsoncxx::builder::stream::document{}
+                << "$pull" << bsoncxx::builder::stream::open_document
+                << "active_user_ids" << user_id
+                << bsoncxx::builder::stream::close_document
+                << bsoncxx::builder::stream::finalize;
+  whiteboard_collection.update_one(filter.view(), update.view());
+
+  // Step 3. Check if the whiteboard should be deleted
+  auto result = whiteboard_collection.find_one(filter.view());
+  if (result) {
+    auto whiteboard_doc = result->view();
+    auto active_user_ids_field = whiteboard_doc["active_user_ids"];
+    if (active_user_ids_field) {
+      auto active_user_ids = active_user_ids_field.get_array().value;
+      bool should_delete_whiteboard = true;
+      for (bsoncxx::array::element user_id : active_user_ids) {
+        should_delete_whiteboard = false; // If there is at least one active
+        // user, do not delete the whiteboard
+        break;
+      }
+
+      if (should_delete_whiteboard) {
+        // Delete the whiteboard document if no active users remaining
+        whiteboard_collection.delete_one(filter.view());
+      }
+    }
+  }
+  // Send response to the client
+  WhiteboardPacket response(version, WhiteboardPacketType::actionResponse,
+                            packet_id);
+  response.new_action_response(true, "Quit session successfully");
+  send_packet(tcp_socket, response);
+}
+
+void WhiteboardServer::handle_add_element_request(
+    const protobuf::AddElementRequest &request) {
+  // Step 1
+  WhiteboardElements new_ele;
+  auto proto_ele = request.element();
+  std::string proto_ele_string = proto_ele.SerializeAsString();
+  auto doc_value = make_document(kvp("elements", proto_ele_string));
+  protobuf::whiteboardPacket new_proto_ele;
+  new_proto_ele.ParseFromString(proto_ele_string);
+  // auto insert_one_result =
+  whiteboard_collection.insert_one(doc_value.view());
 }
 
 void WhiteboardServer::send_packet(tcp::socket &tcp_socket,

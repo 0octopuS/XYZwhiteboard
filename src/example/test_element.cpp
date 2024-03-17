@@ -14,7 +14,7 @@ void test_path_element() {
   path.print();
 
   // Protobuf test
-  auto path_buf = path.get_protobuf();
+  auto path_buf = path.to_protobuf();
   auto protobuf_path = path_buf.path();
   auto protobuf_points = protobuf_path.points();
   std::cout << "   >>> Content from converted protobuf\n";
@@ -32,7 +32,7 @@ void test_line_element() {
   line.print();
 
   // Protobuf test
-  auto line_buf = line.get_protobuf();
+  auto line_buf = line.to_protobuf();
   auto protobuf_line = line_buf.line();
   auto protobuf_start = protobuf_line.start();
   auto protobuf_end = protobuf_line.end();
@@ -51,7 +51,7 @@ void test_circle_element() {
   element.print();
 
   // Protobuf test
-  auto pb_ele = element.get_protobuf().circle();
+  auto pb_ele = element.to_protobuf().circle();
   auto protobuf_center = pb_ele.center();
   auto protobuf_radius = pb_ele.radius();
   std::cout << "   >>> Content from converted protobuf\n";
@@ -67,7 +67,7 @@ void test_triangle_element() {
   element.print();
 
   // Protobuf test
-  auto pb_ele = element.get_protobuf().triangle();
+  auto pb_ele = element.to_protobuf().triangle();
   auto protobuf_point1 = pb_ele.point1();
   auto protobuf_point2 = pb_ele.point2();
   auto protobuf_point3 = pb_ele.point3();
@@ -89,7 +89,7 @@ void test_square_element() {
   element.print();
 
   // Protobuf test
-  auto pb_ele = element.get_protobuf().square();
+  auto pb_ele = element.to_protobuf().square();
   auto protobuf_topleft = pb_ele.topleft();
   auto protobuf_side_length = pb_ele.side_length();
   std::cout << "   >>> Content from converted protobuf\n";
@@ -105,7 +105,7 @@ void test_text_element() {
   element.print();
 
   // Protobuf test
-  auto pb_ele = element.get_protobuf().text();
+  auto pb_ele = element.to_protobuf().text();
   auto protobuf_center = pb_ele.center();
   auto protobuf_content = pb_ele.content();
   std::cout << "   >>> Content from converted protobuf\n";
@@ -121,7 +121,7 @@ void test_stickynote_element() {
   element.print();
 
   // Protobuf test
-  auto pb_ele = element.get_protobuf().stickynote();
+  auto pb_ele = element.to_protobuf().stickynote();
   auto protobuf_center = pb_ele.center();
   auto protobuf_side_length = pb_ele.side_length();
   auto protobuf_content = pb_ele.content();

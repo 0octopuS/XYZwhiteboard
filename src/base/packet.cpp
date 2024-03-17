@@ -1,6 +1,7 @@
 #include "packet.hpp"
 #include "action.pb.h"
 #include "packet.pb.h"
+#include <cstdint>
 #include <cstdio>
 #include <iostream>
 
@@ -44,6 +45,7 @@ std::string WhiteboardPacket::serialize() const {
 
 void WhiteboardPacket::new_packet(protobuf::PacketAction packet_action) {
   packet.set_version(version);
+  packet.set_packet_id(packet_id);
   // packet.set_packet_type(type);
   // packet.set_session_id(session_id);
   protobuf::PacketAction *action;
@@ -55,7 +57,6 @@ void WhiteboardPacket::new_packet(protobuf::PacketAction packet_action) {
   } else if (action->has_createsession()) {
     packet.set_packet_type(
         static_cast<uint32_t>(WhiteboardPacketType::createSession));
-
   } else if (action->has_joinsession()) {
     packet.set_packet_type(
         static_cast<uint32_t>(WhiteboardPacketType::joinSession));
@@ -96,6 +97,9 @@ void WhiteboardPacket::new_packet(protobuf::PacketAction packet_action) {
 #endif
 }
 
+const std::string WhiteboardPacket::get_packet_type_name() {
+  return packet_action_name[static_cast<uint32_t>(type)];
+}
 void WhiteboardPacket::print() const {
   std::cout << "----------------------------------\n";
   std::cout << "   Packet type " << packet_action_name[packet.packet_type()]

@@ -38,7 +38,7 @@ Define `WhiteboardElement` class for standard APIs for creating and parsing Elem
 
 | Action           | Server logic | Client logic | Packet logic | Test |
 | ---------------- | ------------ | ------------ | ------------ | ---- |
-| createWhiteboard |              |              |              |      |
+| createWhiteboard | ✅            | ✅            |              |      |
 | createSession    |              |              |              |      |
 | JoinSession      |              |              |              |      |
 | quitSession      |              |              |              |      |
@@ -48,4 +48,4 @@ Define `WhiteboardElement` class for standard APIs for creating and parsing Elem
 | saveWhiteboard   |              |              |              |      |
 | actionResponse   |              |              |              |      |
 | broadcast        |              |              |              |      |
-| tempIdResponse   |              |              |              |      |
+| tempIdResponse   | ✅            | ✅            |              |      |

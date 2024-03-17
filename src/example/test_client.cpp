@@ -13,10 +13,10 @@ void test_createSession(WhiteboardClient *client) {
 #ifndef NDEBUG
   DEBUG_MSG;
 #endif
-  client->send_create_whiteboard_request();
+  client->send_create_session_request();
 }
 
-void test_Joinsession(WhiteboardClient *client) {
+void test_joinSession(WhiteboardClient *client) {
 #ifndef NDEBUG
   DEBUG_MSG;
 #endif
@@ -27,6 +27,7 @@ void test_quitSession(WhiteboardClient *client) {
 #ifndef NDEBUG
   DEBUG_MSG;
 #endif
+  // client->send_quit_session_request();
 }
 void test_addElement(WhiteboardClient *client) {
 #ifndef NDEBUG
@@ -72,14 +73,17 @@ int main() {
 
     WhiteboardClient client("127.0.0.1", 12345); // Assuming server IP and port
     // client.start;
-    test_createWhiteboard(&client);
+    // test_createWhiteboard(&client);
+    test_createSession(&client);
+    test_joinSession(&client);
 
     // Simulate some work on the main thread while the client runs
     std::cout << "Doing some work on the main thread..." << std::endl;
-    while (true) {
-      bool received1 = client.handle_receive();
-      if (received1)
-        break;
+    int packetnum = 2;
+    while (packetnum != 0) {
+      bool received = client.handle_receive();
+      if (received)
+        packetnum--;
     }
     std::cout << "Recevie packet len:" << client.received_queue.size() << "\n";
     // std::this_thread::sleep_for(std::chrono::seconds(3));
