@@ -38,13 +38,15 @@ Define `WhiteboardElement` class for standard APIs for creating and parsing Elem
 
 | Action           | Server logic | Client logic | Packet logic | Test |
 | ---------------- | ------------ | ------------ | ------------ | ---- |
-| createWhiteboard | ✅            | ✅            |              |      |
-| createSession    |              |              |              |      |
-| JoinSession      |              |              |              |      |
-| quitSession      |              |              |              |      |
+| createWhiteboard | ✅            | ✅            | ✅            |      |
+| createSession    | ✅            | ✅            | ✅            |      |
+| JoinSession      | ✅            | ✅            | ✅            |      |
+| quitSession      | ✅            | ✅            | ✅            |      |
 | addElement       |              |              |              |      |
 | modifyElement    |              |              |              |      |
 | deleteElement    |              |              |              |      |
+| login            | ✅            | ✅            | ✅            |      |
+| register         | ✅            | ✅            | ✅            |      |
 | saveWhiteboard   |              |              |              |      |
 | actionResponse   |              |              |              |      |
 | broadcast        |              |              |              |      |
