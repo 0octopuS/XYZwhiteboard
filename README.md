@@ -51,3 +51,11 @@ Define `WhiteboardElement` class for standard APIs for creating and parsing Elem
 | actionResponse   |              |              |              |      |
 | broadcast        |              |              |              |      |
 | tempIdResponse   | ✅            | ✅            |              |      |
+
+
+
+## Todo list
+
+- [] Register same username
+- [] Join/Quit session, loggin and anonymous user management
+- [] 

@@ -293,10 +293,46 @@ void WhiteboardClient::handle_action_response(
 #endif
     break;
   }
-  case WhiteboardPacketType::addElement:
-  case WhiteboardPacketType::modifyElement:
-  case WhiteboardPacketType::deleteElement:
-  case WhiteboardPacketType::saveWhiteboard:
+  case WhiteboardPacketType::addElement: {
+    // the return value should be just string message;
+    if (!response.success()) {
+      throw ClientReceiveServerSideFail("Server fail to add an element");
+    }
+#ifndef NDEBUG
+    std::cout << "<<<" << response.message() << "\n";
+#endif
+    break;
+  }
+  case WhiteboardPacketType::modifyElement: {
+    // the return value should be just string message;
+    if (!response.success()) {
+      throw ClientReceiveServerSideFail("Server fail to modify an element");
+    }
+#ifndef NDEBUG
+    std::cout << "<<<" << response.message() << "\n";
+#endif
+    break;
+  }
+  case WhiteboardPacketType::deleteElement: {
+    // the return value should be just string message;
+    if (!response.success()) {
+      throw ClientReceiveServerSideFail("Server fail to delete an element");
+    }
+#ifndef NDEBUG
+    std::cout << "<<<" << response.message() << "\n";
+#endif
+    break;
+  }
+  case WhiteboardPacketType::saveWhiteboard: {
+    // the return value should be just string message;
+    if (!response.success()) {
+      throw ClientReceiveServerSideFail("Server help you save the whiteboard");
+    }
+#ifndef NDEBUG
+    std::cout << "<<<" << response.message() << "\n";
+#endif
+    break;
+  }
   case WhiteboardPacketType::loginRequest: {
     if (!response.success()) {
       throw ClientReceiveServerSideFail("Server fail to login the user");

@@ -55,6 +55,13 @@ private:
       }
     }
   }
+
+  bool is_whiteboard_shared(const std::string &whiteboard_id) {
+    std::lock_guard<std::mutex> lock(
+        map_mutex); // Lock the mutex to ensure thread safety
+    return whiteboard_sessions.count(whiteboard_id) > 0;
+  }
+
   void handle_connection(tcp::socket socket);
   void accept_connections();
 
@@ -77,13 +84,17 @@ private:
 
   void handle_add_element_request(const protobuf::whiteboardPacket &packet,
                                   tcp::socket &tcp_socket);
-
+  void handle_modify_element_request(const protobuf::whiteboardPacket &packet,
+                                     tcp::socket &tcp_socket);
   void handle_login_request(const protobuf::whiteboardPacket &packet,
                             tcp::socket &tcp_socket);
   void handle_register_request(const protobuf::whiteboardPacket &packet,
                                tcp::socket &tcp_socket);
 
+  void handle_broadcast(std::string whiteboard_id);
   // General method for send packet
+  void handle_unicast(const std::string &whiteboard_id,
+                      tcp::socket &tcp_socket);
   void send_packet(tcp::socket &tcp_socket, const WhiteboardPacket &packet);
 
 public:

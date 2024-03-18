@@ -1,6 +1,5 @@
 #include "../base/exception.hpp"
 #include "../base/packet.hpp" // Include your WhiteboardPacket class
-#include "action.pb.h"
 #include <boost/asio.hpp>
 #include <cstdint>
 #include <queue>
@@ -11,8 +10,8 @@ using boost::asio::ip::tcp;
 class WhiteboardClient {
 private:
   uint32_t version = 1;
-  uint32_t user_id = 12;
-  string whiteboard_id = "65f7e50f2b9f7d4b30002e71";
+  uint32_t user_id;
+  string whiteboard_id;
   uint32_t packet_counter = 0;
   boost::asio::io_context io_context;
   tcp::resolver resolver;

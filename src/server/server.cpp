@@ -1,5 +1,6 @@
 #include "server.hpp"
 #include "action.pb.h"
+#include "element.pb.h"
 #include "packet.pb.h"
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/read.hpp>
@@ -94,6 +95,12 @@ void WhiteboardServer::handle_connection(tcp::socket socket) {
         break;
       case WhiteboardPacketType::quitSession:
         handle_quit_session_request(packet, socket);
+        break;
+      case WhiteboardPacketType::addElement:
+        handle_add_element_request(packet, socket);
+        break;
+      case WhiteboardPacketType::modifyElement:
+        handle_modify_element_request(packet, socket);
         break;
       case WhiteboardPacketType::loginRequest:
         handle_login_request(packet, socket);
@@ -284,6 +291,9 @@ void WhiteboardServer::handle_join_session_request(
       whiteboard_collection.update_one(filter.view(), update.view());
       // Success response
       response.new_action_response(true, "Joined session successfully");
+      if (is_whiteboard_shared(whiteboard_id)) {
+        handle_unicast(whiteboard_id, tcp_socket);
+      }
     } else {
       // Admin ID not found, send failure response
       response.new_action_response(false, "Whiteboard is not in shared status");
@@ -349,14 +359,60 @@ void WhiteboardServer::handle_add_element_request(
     const protobuf::whiteboardPacket &packet, tcp::socket &tcp_socket) {
   // Step 1
   auto request = packet.action().addelement();
+  auto user_id = static_cast<int>(request.user_id());
+  auto whiteboard_id = request.whiteboard_id();
   WhiteboardElements new_ele;
   auto proto_ele = request.element();
   std::string proto_ele_string = proto_ele.SerializeAsString();
   auto doc_value = make_document(kvp("elements", proto_ele_string));
-  protobuf::whiteboardPacket new_proto_ele;
-  new_proto_ele.ParseFromString(proto_ele_string);
+  // protobuf::whiteboardPacket new_proto_ele;
+  // new_proto_ele.ParseFromString(proto_ele_string);
   // auto insert_one_result =
-  whiteboard_collection.insert_one(doc_value.view());
+
+  auto filter = bsoncxx::builder::stream::document{}
+                << "_id" << bsoncxx::oid{whiteboard_id}
+                << bsoncxx::builder::stream::finalize;
+  auto result = whiteboard_collection.find_one(filter.view());
+  if (result) {
+    auto whiteboard_doc = result->view();
+    auto active_user_ids_field = whiteboard_doc["active_user_ids"];
+
+    // Check if the user is in the active_user_ids list
+    if (active_user_ids_field) {
+      auto active_user_ids = active_user_ids_field.get_array().value;
+      for (const auto &id : active_user_ids) {
+        if (id.get_int32().value == user_id) {
+          // User is in the active_user_ids list, update the elements array
+          auto update = bsoncxx::builder::stream::document{}
+                        << "$push" << bsoncxx::builder::stream::open_document
+                        << "elements" << proto_ele_string
+                        << bsoncxx::builder::stream::close_document
+                        << bsoncxx::builder::stream::finalize;
+          whiteboard_collection.update_one(filter.view(), update.view());
+          // Optionally, send a success response to the client
+          WhiteboardPacket response(version,
+                                    WhiteboardPacketType::actionResponse,
+                                    packet.packet_id());
+          response.new_action_response(true, "Element added successfully");
+          send_packet(tcp_socket, response);
+          break;
+        }
+      }
+      if (is_whiteboard_shared(whiteboard_id)) {
+        handle_broadcast(whiteboard_id);
+      }
+    }
+  } else {
+
+    // If the user is not in the active_user_ids list or whiteboard not found,
+    // send a failure response
+    WhiteboardPacket response(version, WhiteboardPacketType::actionResponse,
+                              packet.packet_id());
+    response.new_action_response(
+        false, "User is not authorized to add element or whiteboard not found");
+    send_packet(tcp_socket, response);
+  }
+  // whiteboard_collection.insert_one(doc_value.view());
 }
 
 void WhiteboardServer::handle_register_request(
@@ -399,6 +455,203 @@ void WhiteboardServer::handle_register_request(
     response.new_action_response(false,
                                  "Exception occurred while registering user");
     send_packet(tcp_socket, response);
+  }
+}
+
+void WhiteboardServer::handle_modify_element_request(
+    const protobuf::whiteboardPacket &packet, tcp::socket &tcp_socket) {
+  // Extract orig_element and new_element from the packet
+  auto request = packet.action().modifyelement();
+  auto orig_element = request.orig_element();
+  auto new_element = request.modi_element();
+
+  // Convert elements to string
+  std::string orig_element_string, new_element_string;
+  orig_element_string = orig_element.SerializeAsString();
+  new_element_string = new_element.SerializeAsString();
+
+  // Extract user_id and whiteboard_id from the packet
+  auto user_id = static_cast<int>(request.user_id());
+  auto whiteboard_id = request.whiteboard_id();
+
+  // Check if the user is in the active_user_ids list in the database
+  auto filter = bsoncxx::builder::stream::document{}
+                << "_id" << bsoncxx::oid{whiteboard_id}
+                << bsoncxx::builder::stream::finalize;
+  auto result = whiteboard_collection.find_one(filter.view());
+
+  if (result) {
+    auto whiteboard_doc = result->view();
+    auto active_user_ids_field = whiteboard_doc["active_user_ids"];
+
+    // Check if the user is in the active_user_ids list
+    if (active_user_ids_field) {
+      auto active_user_ids = active_user_ids_field.get_array().value;
+      bool user_found = false;
+      for (const auto &id : active_user_ids) {
+        if (id.get_int32().value == user_id) {
+          user_found = true;
+          break;
+        }
+      }
+
+      if (user_found) {
+        // User is in the active_user_ids list, proceed with modifying the
+        // element
+
+        // Check if the original element exists in the database
+        auto elements_field = whiteboard_doc["elements"];
+        if (elements_field) {
+          auto elements_array = elements_field.get_array().value;
+          bool orig_element_found = false;
+          for (const auto &element : elements_array) {
+            if (element.get_string().value.to_string() == orig_element_string) {
+              orig_element_found = true;
+              break;
+            }
+          }
+
+          if (orig_element_found) {
+            // Original element found, delete it and add the new element
+            auto update = bsoncxx::builder::stream::document{}
+                          << "$pull" << bsoncxx::builder::stream::open_document
+                          << "elements" << orig_element_string
+                          << bsoncxx::builder::stream::close_document << "$push"
+                          << bsoncxx::builder::stream::open_document
+                          << "elements" << new_element_string
+                          << bsoncxx::builder::stream::close_document
+                          << bsoncxx::builder::stream::finalize;
+            whiteboard_collection.update_one(filter.view(), update.view());
+
+            // Optionally, send a success response to the client
+            WhiteboardPacket response(version,
+                                      WhiteboardPacketType::actionResponse,
+                                      packet.packet_id());
+            response.new_action_response(true, "Element modified successfully");
+            send_packet(tcp_socket, response);
+
+            if (is_whiteboard_shared(whiteboard_id)) {
+              handle_broadcast(whiteboard_id);
+            }
+            return;
+          } else {
+            // Original element not found in the database, send a failure
+            // response
+            WhiteboardPacket response(version,
+                                      WhiteboardPacketType::actionResponse,
+                                      packet.packet_id());
+            response.new_action_response(
+                false, "Original element is not in the database");
+            send_packet(tcp_socket, response);
+            return;
+          }
+        }
+      }
+    }
+  } else {
+
+    // If the user is not in the active_user_ids list or whiteboard not found,
+    // send a failure response
+    WhiteboardPacket response(version, WhiteboardPacketType::actionResponse,
+                              packet.packet_id());
+    response.new_action_response(
+        false,
+        "User is not authorized to modify element or whiteboard not found");
+    send_packet(tcp_socket, response);
+  }
+}
+
+void WhiteboardServer::handle_broadcast(std::string whiteboard_id) {
+
+  // Check if the whiteboard is in shared status
+  if (!is_whiteboard_shared(whiteboard_id)) {
+    std::cerr << "Whiteboard is not in shared status\n";
+
+    return;
+  }
+
+  // Construct broadcast message
+  protobuf::BroadCast broadcast_msg;
+
+  // Iterate through elements in the database and construct protobuf::Element
+  // objects You need to replace this with your actual logic to fetch elements
+  // from the database
+  auto filter = bsoncxx::builder::stream::document{}
+                << "_id" << bsoncxx::oid{whiteboard_id}
+                << bsoncxx::builder::stream::finalize;
+  auto result = whiteboard_collection.find_one(filter.view());
+
+  if (result) {
+    auto whiteboard_doc = result->view();
+    auto elements_field = whiteboard_doc["elements"];
+    if (elements_field) {
+      auto elements_array = elements_field.get_array().value;
+
+      for (const auto &element_value : elements_array) {
+        auto element_string = element_value.get_string().value.to_string();
+        protobuf::Element ele;
+        ele.ParseFromString(element_string);
+        *broadcast_msg.add_elements() = ele;
+      }
+    } else {
+      std::cerr << "Elements field not found in whiteboard document\n";
+    }
+
+    // Create broadcast packet
+    WhiteboardPacket response(version, WhiteboardPacketType::broadcast, rand());
+    response.new_broadcast(broadcast_msg);
+
+    // Send the broadcast packet to all sockets in the whiteboard_sessions list
+    std::lock_guard<std::mutex> lock(
+        map_mutex); // Lock the mutex to ensure thread safety
+    for (auto &socket : whiteboard_sessions[whiteboard_id]) {
+      send_packet(*socket, response);
+    }
+  }
+}
+
+void WhiteboardServer::handle_unicast(const std::string &whiteboard_id,
+                                      tcp::socket &tcp_socket) {
+  // Check if the whiteboard is in shared status
+  if (!is_whiteboard_shared(whiteboard_id)) {
+    std::cerr << "Whiteboard is not in shared status\n";
+    return;
+  }
+
+  // Construct broadcast message
+  protobuf::BroadCast broadcast_msg;
+
+  // Fetch elements from the database using whiteboard_id
+  auto filter = bsoncxx::builder::stream::document{}
+                << "_id" << bsoncxx::oid{whiteboard_id}
+                << bsoncxx::builder::stream::finalize;
+  auto result = whiteboard_collection.find_one(filter.view());
+
+  if (result) {
+    auto whiteboard_doc = result->view();
+    auto elements_field = whiteboard_doc["elements"];
+
+    if (elements_field) {
+      auto elements_array = elements_field.get_array().value;
+
+      for (const auto &element_value : elements_array) {
+        auto element_string = element_value.get_string().value.to_string();
+        protobuf::Element ele;
+        ele.ParseFromString(element_string);
+        *broadcast_msg.add_elements() = ele;
+      }
+    } else {
+      std::cerr << "Elements field not found in whiteboard document\n";
+    }
+
+    // Create broadcast packet
+    WhiteboardPacket response(version, WhiteboardPacketType::broadcast, rand());
+    response.new_broadcast(broadcast_msg);
+
+    // Send the broadcast packet to the specified tcp_socket
+    send_packet(tcp_socket, response);
+  } else {
+    std::cerr << "Whiteboard not found in the database\n";
   }
 }
 
