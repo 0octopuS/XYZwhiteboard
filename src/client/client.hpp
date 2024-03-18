@@ -11,8 +11,8 @@ using boost::asio::ip::tcp;
 class WhiteboardClient {
 private:
   uint32_t version = 1;
-  uint32_t user_id = 17;
-  string whiteboard_id = "65f70de6ee68f763fd0e1de1";
+  uint32_t user_id = 12;
+  string whiteboard_id = "65f7e50f2b9f7d4b30002e71";
   uint32_t packet_counter = 0;
   boost::asio::io_context io_context;
   tcp::resolver resolver;
@@ -51,8 +51,11 @@ public:
   void send_packet(const WhiteboardPacket &packet);
   void send_create_whiteboard_request();
   void send_create_session_request();
-  void send_join_session_request();
+  void send_join_session_request(string _whiteboard_id);
+  void send_quit_session_request();
   void send_add_element_request(WhiteboardElements _ele);
+  void send_login_request(string username, string password);
+  void send_register_request(string username, string password);
   bool handle_receive();
   void handle_connect(const boost::system::error_code &error);
   protobuf::whiteboardPacket parse_packet(boost::asio::streambuf *buffer);

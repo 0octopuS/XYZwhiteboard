@@ -1,4 +1,5 @@
 #include "client.hpp"
+#include "../base/utils.hpp"
 #include "google/protobuf/io/coded_stream.h"
 #include <boost/asio/read_until.hpp>
 #include <cstdint>
@@ -105,14 +106,32 @@ void WhiteboardClient::send_create_session_request() {
 #endif
 }
 
-void WhiteboardClient::send_join_session_request() {
+void WhiteboardClient::send_join_session_request(string _whiteboard_id) {
 #ifndef NDEBUG
   DEBUG_MSG;
 #endif
 
   WhiteboardPacket packet(version, WhiteboardPacketType::joinSession,
                           ++packet_counter);
-  packet.new_join_session_request(user_id, whiteboard_id);
+  packet.new_join_session_request(user_id, _whiteboard_id);
+#ifndef NDEBUG
+  packet.print();
+#endif
+  send_packet(packet);
+  // send_queue_.push(packet);
+#ifndef NDEBUG
+  printf(">>> send_queue len %zu\n", send_queue.size());
+#endif
+}
+
+void WhiteboardClient::send_quit_session_request() {
+#ifndef NDEBUG
+  DEBUG_MSG;
+#endif
+
+  WhiteboardPacket packet(version, WhiteboardPacketType::quitSession,
+                          ++packet_counter);
+  packet.new_quit_session_request(user_id, whiteboard_id);
 #ifndef NDEBUG
   packet.print();
 #endif
@@ -194,6 +213,34 @@ void WhiteboardClient::send_add_element_request(WhiteboardElements _ele) {
   send_packet(packet);
 }
 
+void WhiteboardClient::send_login_request(string username, string password) {
+  SHA256 sha;
+  WhiteboardPacket packet(version, WhiteboardPacketType::loginRequest,
+                          ++packet_counter);
+  sha.update(password);
+  auto password_digest = sha.digest();
+  auto password_hash = sha.toString(password_digest);
+  packet.new_login_request(user_id, username, password_hash);
+#ifndef NDEBUG
+  packet.print();
+#endif
+  send_packet(packet);
+}
+
+void WhiteboardClient::send_register_request(string username, string password) {
+  SHA256 sha;
+  WhiteboardPacket packet(version, WhiteboardPacketType::registerRequest,
+                          ++packet_counter);
+  sha.update(password);
+  auto password_digest = sha.digest();
+  auto password_hash = sha.toString(password_digest);
+  packet.new_register_request(user_id, username, password_hash);
+#ifndef NDEBUG
+  packet.print();
+#endif
+  send_packet(packet);
+}
+
 void WhiteboardClient::handle_action_response(
     const protobuf::whiteboardPacket &packet) {
   auto response = packet.action().actionresponse();
@@ -250,7 +297,17 @@ void WhiteboardClient::handle_action_response(
   case WhiteboardPacketType::modifyElement:
   case WhiteboardPacketType::deleteElement:
   case WhiteboardPacketType::saveWhiteboard:
+  case WhiteboardPacketType::loginRequest: {
+    if (!response.success()) {
+      throw ClientReceiveServerSideFail("Server fail to login the user");
+    }
     break;
+  }
+  case WhiteboardPacketType::registerRequest: {
+    if (!response.success())
+      throw ClientReceiveServerSideFail("Server fail to register the user");
+    break;
+  }
   default:
     printf("Received not validate actionResponse with packet id %d type %d\n",
            packet_id, static_cast<uint32_t>(send_queue[packet_id]));

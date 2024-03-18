@@ -95,6 +95,12 @@ void WhiteboardServer::handle_connection(tcp::socket socket) {
       case WhiteboardPacketType::quitSession:
         handle_quit_session_request(packet, socket);
         break;
+      case WhiteboardPacketType::loginRequest:
+        handle_login_request(packet, socket);
+        break;
+      case WhiteboardPacketType::registerRequest:
+        handle_register_request(packet, socket);
+        break;
       // Add cases for other packet types...
       default:
         std::cout << "Unknown packet type\n";
@@ -340,8 +346,9 @@ void WhiteboardServer::handle_quit_session_request(
 }
 
 void WhiteboardServer::handle_add_element_request(
-    const protobuf::AddElementRequest &request) {
+    const protobuf::whiteboardPacket &packet, tcp::socket &tcp_socket) {
   // Step 1
+  auto request = packet.action().addelement();
   WhiteboardElements new_ele;
   auto proto_ele = request.element();
   std::string proto_ele_string = proto_ele.SerializeAsString();
@@ -350,6 +357,90 @@ void WhiteboardServer::handle_add_element_request(
   new_proto_ele.ParseFromString(proto_ele_string);
   // auto insert_one_result =
   whiteboard_collection.insert_one(doc_value.view());
+}
+
+void WhiteboardServer::handle_register_request(
+    const protobuf::whiteboardPacket &packet, tcp::socket &tcp_socket) {
+  auto request = packet.action().registerrequest();
+  std::string username = request.username();
+  std::string password_hash = request.password_hash();
+  int uid = getNextSequence(mongoclient, "whiteboards", "user_collection");
+  auto doc_value = bsoncxx::builder::stream::document{}
+                   << "_id" << uid << "username" << username << "password_hash"
+                   << password_hash << bsoncxx::builder::stream::finalize;
+
+  // Insert document into user collection
+  try {
+    auto result = user_collection.insert_one(doc_value.view());
+
+    if (result) {
+      WhiteboardPacket temp_id_response(
+          version, WhiteboardPacketType::tempIdResponse, packet.packet_id());
+      temp_id_response.new_temp_id_response(true, uid);
+      // WhiteboardPacket response(version,
+      // WhiteboardPacketType::actionResponse,
+      //                           packet.packet_id());
+      // response.new_action_response(false, "Success in register user");
+      // send_packet(tcp_socket, response);
+
+      send_packet(tcp_socket, temp_id_response);
+    } else {
+      WhiteboardPacket response(version, WhiteboardPacketType::actionResponse,
+                                packet.packet_id());
+      response.new_action_response(false, "Failed to register user");
+      send_packet(tcp_socket, response);
+    }
+
+  } catch (const std::exception &e) {
+    std::cerr << "Exception occurred: " << e.what() << std::endl;
+    // Send failure response to client
+    WhiteboardPacket response(version, WhiteboardPacketType::actionResponse,
+                              packet.packet_id());
+    response.new_action_response(false,
+                                 "Exception occurred while registering user");
+    send_packet(tcp_socket, response);
+  }
+}
+
+void WhiteboardServer::handle_login_request(
+    const protobuf::whiteboardPacket &packet, tcp::socket &tcp_socket) {
+  // Handle LoginRequest
+  std::cout << "Received LoginRequest\n";
+
+  // Extract login information from the packet
+  auto request = packet.action().loginrequest();
+  std::string username = request.username();
+  std::string password_hash =
+      request.password_hash(); // Assuming password hash is provided
+  // Construct filter for querying user document
+  auto filter = bsoncxx::builder::stream::document{}
+                << "username" << username << bsoncxx::builder::stream::finalize;
+
+  // Query user document from the user collection
+  auto result = user_collection.find_one(filter.view());
+  WhiteboardPacket response(version, WhiteboardPacketType::actionResponse,
+                            packet.packet_id());
+
+  // Check if the user exists and password hash matches
+  if (result) {
+    auto user_doc = result->view();
+    auto stored_password_hash = user_doc["password_hash"];
+
+    if (stored_password_hash &&
+        stored_password_hash.get_string().value.to_string() == password_hash) {
+      // Password hash matches, send success response
+      response.new_action_response(true, "Login successful");
+    } else {
+      // Password hash does not match, send failure response
+      response.new_action_response(false, "Invalid username or password");
+    }
+  } else {
+    // User does not exist, send failure response
+    response.new_action_response(false, "Invalid username or password");
+  }
+
+  // Send response to the client
+  send_packet(tcp_socket, response);
 }
 
 void WhiteboardServer::send_packet(tcp::socket &tcp_socket,

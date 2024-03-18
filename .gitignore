@@ -7,5 +7,5 @@ build/
 .*.swp
 .*.swo
 tags
-.cache/
+.cache
 .VSCodeCounter

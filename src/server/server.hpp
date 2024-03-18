@@ -75,7 +75,13 @@ private:
   void handle_quit_session_request(const protobuf::whiteboardPacket &packet,
                                    tcp::socket &tcp_socket);
 
-  void handle_add_element_request(const protobuf::AddElementRequest &request);
+  void handle_add_element_request(const protobuf::whiteboardPacket &packet,
+                                  tcp::socket &tcp_socket);
+
+  void handle_login_request(const protobuf::whiteboardPacket &packet,
+                            tcp::socket &tcp_socket);
+  void handle_register_request(const protobuf::whiteboardPacket &packet,
+                               tcp::socket &tcp_socket);
 
   // General method for send packet
   void send_packet(tcp::socket &tcp_socket, const WhiteboardPacket &packet);

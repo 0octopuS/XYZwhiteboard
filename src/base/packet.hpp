@@ -16,10 +16,13 @@ enum class WhiteboardPacketType : uint32_t {
   modifyElement = 6,
   deleteElement = 7,
   saveWhiteboard = 8,
+  registerRequest = 9,
+  loginRequest = 10,
   // server packet
-  actionResponse = 9,
-  broadcast = 10,
-  tempIdResponse = 11
+  actionResponse = 11,
+  broadcast = 12,
+  tempIdResponse = 13,
+
 };
 
 // The WhiteboardPacket class provide standard methods to create,
@@ -74,6 +77,10 @@ public:
                                   WhiteboardElements _element);
   void new_delete_element_request(uint32_t user_id, std::string whiteboard_id,
                                   WhiteboardElements _orig_element);
+  void new_login_request(uint32_t user_id, std::string username,
+                         std::string password_hash);
+  void new_register_request(uint32_t user_id, std::string username,
+                            std::string password_hash);
   void new_broadcast_request();
   void new_temp_id_response(bool success, uint32_t user_id);
   void new_action_response(bool success, std::string msg);

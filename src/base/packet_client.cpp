@@ -93,3 +93,41 @@ void WhiteboardPacket::new_add_element_request(uint32_t user_id,
   // type = WhiteboardPacketType::addElement;
   // addElementRequest = request;
 }
+
+void WhiteboardPacket::new_login_request(uint32_t user_id, std::string username,
+                                         std::string password_hash) {
+#ifndef NDEBUG
+  printf("--- WhiteboardPacket::new_login_request()\n");
+#endif
+  protobuf::PacketAction action;
+  // type = WhiteboardPacketType::createWhiteboard;
+  protobuf::LoginRequest *login_request = action.mutable_loginrequest();
+  login_request->set_user_id(user_id);
+  login_request->set_username(username);
+  login_request->set_password_hash(password_hash);
+#ifndef NDEBUG
+  printf("--- login_request: %d\n", login_request->user_id());
+  // printf("--- create_whiteboard_request: %s\n", s.DebugString());
+#endif
+  new_packet(action);
+}
+
+void WhiteboardPacket::new_register_request(uint32_t user_id,
+                                            std::string username,
+                                            std::string password_hash) {
+#ifndef NDEBUG
+  printf("--- WhiteboardPacket::new_register_request()\n");
+#endif
+  protobuf::PacketAction action;
+  // type = WhiteboardPacketType::createWhiteboard;
+  protobuf::RegisterRequest *register_request =
+      action.mutable_registerrequest();
+  register_request->set_user_id(user_id);
+  register_request->set_username(username);
+  register_request->set_password_hash(password_hash);
+#ifndef NDEBUG
+  printf("--- register_request: %d\n", register_request->user_id());
+  // printf("--- create_whiteboard_request: %s\n", s.DebugString());
+#endif
+  new_packet(action);
+}

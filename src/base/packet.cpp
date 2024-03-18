@@ -14,6 +14,8 @@ std::vector<std::string> packet_action_name{"",
                                             "ModifyElementRequest",
                                             "DeleteElement",
                                             "SaveWhiteboardRequest",
+                                            "registerRequest",
+                                            "loginRequest",
                                             "ActionResponse",
                                             "BroadCast",
                                             "TempIDResponse"};
@@ -75,14 +77,18 @@ void WhiteboardPacket::new_packet(protobuf::PacketAction packet_action) {
   } else if (action->has_savewhiteboard()) {
     packet.set_packet_type(
         static_cast<uint32_t>(WhiteboardPacketType::saveWhiteboard));
-
+  } else if (action->has_loginrequest()) {
+    packet.set_packet_type(
+        static_cast<uint32_t>(WhiteboardPacketType::loginRequest));
+  } else if (action->has_registerrequest()) {
+    packet.set_packet_type(
+        static_cast<uint32_t>(WhiteboardPacketType::registerRequest));
   } else if (action->has_actionresponse()) {
     packet.set_packet_type(
         static_cast<uint32_t>(WhiteboardPacketType::actionResponse));
   } else if (action->has_broadcast()) {
     packet.set_packet_type(
         static_cast<uint32_t>(WhiteboardPacketType::broadcast));
-
   } else if (action->has_tempidresponse()) {
     packet.set_packet_type(
         static_cast<uint32_t>(WhiteboardPacketType::tempIdResponse));
