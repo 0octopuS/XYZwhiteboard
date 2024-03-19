@@ -2,6 +2,14 @@
 #include <iostream>
 #include <thread>
 
+std::vector<pair<string, string>> user = {{"Alice", "123456"},
+                                          {"Bob", "bobIsGood"},
+                                          {"Calico", "Youdontknowmypassword"},
+                                          {"David", "ahahahhahas"},
+                                          {"Elio", "eliooile"},
+                                          {"Francisco", "willyougoodluck"},
+                                          {"God", "Ihavenetwork"}};
+int user_index = 2;
 void test_createWhiteboard(WhiteboardClient *client) {
 #ifndef NDEBUG
   DEBUG_MSG;
@@ -17,7 +25,7 @@ void test_createSession(WhiteboardClient *client) {
 }
 
 void test_joinSession(WhiteboardClient *client,
-                      std::string whiteboard_id = "65f7e50f2b9f7d4b30002e71") {
+                      std::string whiteboard_id = "65f95be22289cf2d410f1331") {
 #ifndef NDEBUG
   DEBUG_MSG;
 #endif
@@ -54,11 +62,13 @@ void test_saveWhiteboard(WhiteboardClient *client) {
 #endif
 }
 void test_login(WhiteboardClient *client) {
-  client->send_login_request("Domino", "domino2024");
+  auto [username, userpass] = user[user_index];
+  client->send_login_request(username, userpass);
 }
 
 void test_register(WhiteboardClient *client) {
-  client->send_register_request("Domino", "domino2024");
+  auto [username, userpass] = user[user_index];
+  client->send_register_request(username, userpass);
 }
 
 int main() {

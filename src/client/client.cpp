@@ -42,6 +42,10 @@ bool WhiteboardClient::handle_receive() {
     handle_temp_id_response(received_packet);
     break;
   }
+  case WhiteboardPacketType::broadcast: {
+    handle_broadcast(received_packet);
+    break;
+  }
   default:
     std::cout << "Unknown packet type\n";
     throw ClientReceivedWrongPacketType();
@@ -220,7 +224,7 @@ void WhiteboardClient::send_login_request(string username, string password) {
   sha.update(password);
   auto password_digest = sha.digest();
   auto password_hash = sha.toString(password_digest);
-  packet.new_login_request(user_id, username, password_hash);
+  packet.new_login_request(username, password_hash);
 #ifndef NDEBUG
   packet.print();
 #endif
@@ -234,7 +238,7 @@ void WhiteboardClient::send_register_request(string username, string password) {
   sha.update(password);
   auto password_digest = sha.digest();
   auto password_hash = sha.toString(password_digest);
-  packet.new_register_request(user_id, username, password_hash);
+  packet.new_register_request(username, password_hash);
 #ifndef NDEBUG
   packet.print();
 #endif
@@ -364,4 +368,16 @@ void WhiteboardClient::handle_temp_id_response(
   } else {
     throw ClientReceiveServerSideFail("Server fail to create user_id");
   }
+}
+
+vector<WhiteboardElements>
+WhiteboardClient::handle_broadcast(const protobuf::whiteboardPacket &response) {
+
+  auto broadcast_action = response.action().broadcast();
+#ifndef NDEBUG
+  std::cout << "<<< Receive boradcast " << broadcast_action.elements_size()
+            << "\n";
+#endif
+  vector<WhiteboardElements> element;
+  return element;
 }

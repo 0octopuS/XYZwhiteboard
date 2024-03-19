@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <google/protobuf/arena.h>
 #include <sys/types.h>
+#include <utility>
 
 void WhiteboardPacket::new_create_whiteboard_request(uint32_t user_id) {
 #ifndef NDEBUG
@@ -80,20 +81,25 @@ void WhiteboardPacket::new_add_element_request(uint32_t user_id,
                                                std::string whiteboard_id,
                                                WhiteboardElements _element) {
 #ifndef NDEBUG
-  printf("--- WhiteboardPacket::new_quit_session_request()\n");
+  printf("--- WhiteboardPacket::new_add_element_request()\n");
 #endif
   protobuf::PacketAction action;
   protobuf::AddElementRequest *add_element_request =
       action.mutable_addelement();
-  WhiteboardElements element;
-  auto proto_element = element.to_protobuf();
+  add_element_request->set_user_id(user_id);
+  add_element_request->set_whiteboard_id(whiteboard_id);
+  // WhiteboardElements element;
+  auto proto_element = _element.to_protobuf();
   // WhiteboardElementsType _ele_type = _element.get_type();
-  add_element_request->set_allocated_element(&proto_element);
+  auto proto_element_field = add_element_request->mutable_element();
+  std::swap(proto_element, *proto_element_field);
+  // add_element_request->set_allocated_element(&proto_element);
   // type = WhiteboardPacketType::addElement;
   // addElementRequest = request;
+  new_packet(action);
 }
 
-void WhiteboardPacket::new_login_request(uint32_t user_id, std::string username,
+void WhiteboardPacket::new_login_request(std::string username,
                                          std::string password_hash) {
 #ifndef NDEBUG
   printf("--- WhiteboardPacket::new_login_request()\n");
@@ -101,18 +107,16 @@ void WhiteboardPacket::new_login_request(uint32_t user_id, std::string username,
   protobuf::PacketAction action;
   // type = WhiteboardPacketType::createWhiteboard;
   protobuf::LoginRequest *login_request = action.mutable_loginrequest();
-  login_request->set_user_id(user_id);
   login_request->set_username(username);
   login_request->set_password_hash(password_hash);
 #ifndef NDEBUG
-  printf("--- login_request: %d\n", login_request->user_id());
+  printf("--- login_request: %s\n", login_request->username().c_str());
   // printf("--- create_whiteboard_request: %s\n", s.DebugString());
 #endif
   new_packet(action);
 }
 
-void WhiteboardPacket::new_register_request(uint32_t user_id,
-                                            std::string username,
+void WhiteboardPacket::new_register_request(std::string username,
                                             std::string password_hash) {
 #ifndef NDEBUG
   printf("--- WhiteboardPacket::new_register_request()\n");
@@ -121,11 +125,10 @@ void WhiteboardPacket::new_register_request(uint32_t user_id,
   // type = WhiteboardPacketType::createWhiteboard;
   protobuf::RegisterRequest *register_request =
       action.mutable_registerrequest();
-  register_request->set_user_id(user_id);
   register_request->set_username(username);
   register_request->set_password_hash(password_hash);
 #ifndef NDEBUG
-  printf("--- register_request: %d\n", register_request->user_id());
+  printf("--- register_request: %s\n", register_request->username().c_str());
   // printf("--- create_whiteboard_request: %s\n", s.DebugString());
 #endif
   new_packet(action);

@@ -1,6 +1,7 @@
 #include "utils.hpp"
 #include <cstring>
 #include <iomanip>
+#include <random>
 #include <sstream>
 
 constexpr std::array<uint32_t, 64> SHA256::K;
@@ -157,4 +158,28 @@ std::string SHA256::toString(const std::array<uint8_t, 32> &digest) {
   }
 
   return s.str();
+}
+
+void generate_random_bytes(unsigned char *buffer, size_t size) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<unsigned int> dist(0, 255);
+
+  for (size_t i = 0; i < size; ++i) {
+    buffer[i] = static_cast<unsigned char>(dist(gen));
+  }
+}
+
+std::string generate_random_salt(int length) {
+  const std::string charset =
+      "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int> dist(0, charset.length() - 1);
+
+  std::string salt;
+  for (int i = 0; i < length; ++i) {
+    salt += charset[dist(gen)];
+  }
+  return salt;
 }

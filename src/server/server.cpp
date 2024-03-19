@@ -1,4 +1,5 @@
 #include "server.hpp"
+#include "../base/utils.hpp"
 #include "action.pb.h"
 #include "element.pb.h"
 #include "packet.pb.h"
@@ -8,6 +9,7 @@
 #include <cstdint>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <iostream>
+#include <vector>
 
 void WhiteboardServer::accept_connections() {
   try {
@@ -191,7 +193,6 @@ void WhiteboardServer::handle_create_whiteboard_request(
 
   auto doc_value = make_document(
       kvp("uid", static_cast<int>(user_id)), kvp("elements", make_array()),
-      kvp("connected_user_num", 1),
       kvp("created_at",
           bsoncxx::types::b_date(std::chrono::system_clock::now())));
   ;
@@ -266,6 +267,10 @@ void WhiteboardServer::handle_join_session_request(
   auto request = packet.action().joinsession();
   auto packet_id = packet.packet_id();
   auto user_id = static_cast<int>(request.user_id());
+  if (user_id == 0) {
+    user_id = handle_assign_user_id(tcp_socket);
+  }
+
   auto whiteboard_id = request.whiteboard_id();
 
   // Step 1. Fetch from database to see if the whiteboard exists
@@ -283,6 +288,7 @@ void WhiteboardServer::handle_join_session_request(
       add_socket_to_whiteboard(whiteboard_id, &tcp_socket);
 
       // Step 3. Update active_user_ids field in the whiteboard document
+      // Here we use $addToSet to automatically deal with  existence user case
       auto update = bsoncxx::builder::stream::document{}
                     << "$addToSet" << bsoncxx::builder::stream::open_document
                     << "active_user_ids" << user_id
@@ -334,6 +340,8 @@ void WhiteboardServer::handle_quit_session_request(
     auto whiteboard_doc = result->view();
     auto active_user_ids_field = whiteboard_doc["active_user_ids"];
     if (active_user_ids_field) {
+
+      // Check if the client is indeed in this session
       auto active_user_ids = active_user_ids_field.get_array().value;
       bool should_delete_whiteboard = true;
       for (bsoncxx::array::element user_id : active_user_ids) {
@@ -376,31 +384,26 @@ void WhiteboardServer::handle_add_element_request(
   if (result) {
     auto whiteboard_doc = result->view();
     auto active_user_ids_field = whiteboard_doc["active_user_ids"];
-
+    auto uid_field = whiteboard_doc["uid"];
     // Check if the user is in the active_user_ids list
-    if (active_user_ids_field) {
-      auto active_user_ids = active_user_ids_field.get_array().value;
-      for (const auto &id : active_user_ids) {
-        if (id.get_int32().value == user_id) {
-          // User is in the active_user_ids list, update the elements array
-          auto update = bsoncxx::builder::stream::document{}
-                        << "$push" << bsoncxx::builder::stream::open_document
-                        << "elements" << proto_ele_string
-                        << bsoncxx::builder::stream::close_document
-                        << bsoncxx::builder::stream::finalize;
-          whiteboard_collection.update_one(filter.view(), update.view());
-          // Optionally, send a success response to the client
-          WhiteboardPacket response(version,
-                                    WhiteboardPacketType::actionResponse,
-                                    packet.packet_id());
-          response.new_action_response(true, "Element added successfully");
-          send_packet(tcp_socket, response);
-          break;
-        }
-      }
-      if (is_whiteboard_shared(whiteboard_id)) {
-        handle_broadcast(whiteboard_id);
-      }
+    if ((active_user_ids_field &&
+         user_in_active_user_ids(whiteboard_doc, user_id)) ||
+        (uid_field && uid_field.get_int32().value == user_id)) {
+      // User is in the active_user_ids list, update the elements array
+      auto update = bsoncxx::builder::stream::document{}
+                    << "$push" << bsoncxx::builder::stream::open_document
+                    << "elements" << proto_ele_string
+                    << bsoncxx::builder::stream::close_document
+                    << bsoncxx::builder::stream::finalize;
+      whiteboard_collection.update_one(filter.view(), update.view());
+      // Optionally, send a success response to the client
+      WhiteboardPacket response(version, WhiteboardPacketType::actionResponse,
+                                packet.packet_id());
+      response.new_action_response(true, "Element added successfully");
+      send_packet(tcp_socket, response);
+    }
+    if (is_whiteboard_shared(whiteboard_id)) {
+      handle_broadcast(whiteboard_id);
     }
   } else {
 
@@ -420,10 +423,42 @@ void WhiteboardServer::handle_register_request(
   auto request = packet.action().registerrequest();
   std::string username = request.username();
   std::string password_hash = request.password_hash();
+
+  // Step 1: username uniqueness check
+  auto filter = bsoncxx::builder::stream::document{}
+                << "username" << username << bsoncxx::builder::stream::finalize;
+  auto result = user_collection.find_one(filter.view());
+
+  if (result) {
+    // Username already exists, send failure response
+    WhiteboardPacket response(version, WhiteboardPacketType::actionResponse,
+                              packet.packet_id());
+    response.new_action_response(false, "Username already exists");
+    send_packet(tcp_socket, response);
+    return; // Exit the function
+  }
+
+  // Step 2: generate randome salt
+  // Generate a random salt
+  std::string salt_string = generate_random_salt(16);
+
+  // Concatenate the salt with the password
+  std::string salted_password = salt_string + password_hash;
+
+  // Hash the concatenated string using SHA256
+  SHA256 sha256;
+  sha256.update(
+      reinterpret_cast<const unsigned char *>(salted_password.c_str()),
+      salted_password.length());
+  auto digest = sha256.digest();
+  std::string hashed_password_string = sha256.toString(digest);
+  std::cout << "+++" << salted_password << " " << hashed_password_string
+            << "\n";
   int uid = getNextSequence(mongoclient, "whiteboards", "user_collection");
   auto doc_value = bsoncxx::builder::stream::document{}
-                   << "_id" << uid << "username" << username << "password_hash"
-                   << password_hash << bsoncxx::builder::stream::finalize;
+                   << "_id" << uid << "username" << username << "salt"
+                   << salt_string << "password_hash" << hashed_password_string
+                   << bsoncxx::builder::stream::finalize;
 
   // Insert document into user collection
   try {
@@ -456,6 +491,76 @@ void WhiteboardServer::handle_register_request(
                                  "Exception occurred while registering user");
     send_packet(tcp_socket, response);
   }
+}
+
+void WhiteboardServer::handle_login_request(
+    const protobuf::whiteboardPacket &packet, tcp::socket &tcp_socket) {
+  // Handle LoginRequest
+  std::cout << "Received LoginRequest\n";
+
+  // Extract login information from the packet
+  auto request = packet.action().loginrequest();
+  std::string username = request.username();
+  std::string password_hash =
+      request.password_hash(); // Assuming password hash is provided
+  // Construct filter for querying user document
+  auto filter = bsoncxx::builder::stream::document{}
+                << "username" << username << bsoncxx::builder::stream::finalize;
+
+  // Query user document from the user collection
+  auto result = user_collection.find_one(filter.view());
+
+  // Check if the user exists and password hash matches
+  if (result) {
+    auto user_doc = result->view();
+    auto stored_password_hash = user_doc["password_hash"];
+    auto stored_salt = user_doc["salt"];
+    auto user_id = user_doc["_id"].get_int32();
+
+    if (stored_password_hash && stored_salt) {
+      // Combine stored salt and provided password to calculate hash
+      std::string salt = stored_salt.get_string().value.to_string();
+      std::cout << "+++" << salt << "\n";
+      std::string salted_password = salt + password_hash;
+
+      SHA256 sha256;
+      sha256.update(
+          reinterpret_cast<const unsigned char *>(salted_password.c_str()),
+          salted_password.length());
+      auto digest = sha256.digest();
+      std::string calculated_hash = sha256.toString(digest);
+      // Check if calculated hash matches stored hash
+      if (calculated_hash ==
+          stored_password_hash.get_string().value.to_string()) {
+        // Password hash matches, send success response
+        WhiteboardPacket response(version, WhiteboardPacketType::tempIdResponse,
+                                  packet.packet_id());
+        // Password hash does not match, send failure response
+        std::cout << "+++" << calculated_hash << " "
+                  << stored_password_hash.get_string().value.to_string() << " "
+                  << salted_password << "\n";
+        response.new_temp_id_response(true, user_id);
+        send_packet(tcp_socket, response);
+      } else {
+        std::cout << "+++" << calculated_hash << " "
+                  << stored_password_hash.get_string().value.to_string() << " "
+                  << salted_password << "\n";
+        WhiteboardPacket response(version, WhiteboardPacketType::actionResponse,
+                                  packet.packet_id());
+        // Password hash does not match, send failure response
+        response.new_action_response(false, "Invalid username or password");
+        send_packet(tcp_socket, response);
+      }
+    }
+  } else {
+
+    WhiteboardPacket response(version, WhiteboardPacketType::actionResponse,
+                              packet.packet_id());
+    // User does not exist, send failure response
+    response.new_action_response(false, "User not exist");
+    send_packet(tcp_socket, response);
+  }
+  // Send response to the client
 }
 
 void WhiteboardServer::handle_modify_element_request(
@@ -584,6 +689,7 @@ void WhiteboardServer::handle_broadcast(std::string whiteboard_id) {
   if (result) {
     auto whiteboard_doc = result->view();
     auto elements_field = whiteboard_doc["elements"];
+    std::vector<protobuf::Element> eles;
     if (elements_field) {
       auto elements_array = elements_field.get_array().value;
 
@@ -591,7 +697,8 @@ void WhiteboardServer::handle_broadcast(std::string whiteboard_id) {
         auto element_string = element_value.get_string().value.to_string();
         protobuf::Element ele;
         ele.ParseFromString(element_string);
-        *broadcast_msg.add_elements() = ele;
+        eles.emplace_back(ele);
+        // *broadcast_msg.add_elements() = ele;
       }
     } else {
       std::cerr << "Elements field not found in whiteboard document\n";
@@ -599,7 +706,7 @@ void WhiteboardServer::handle_broadcast(std::string whiteboard_id) {
 
     // Create broadcast packet
     WhiteboardPacket response(version, WhiteboardPacketType::broadcast, rand());
-    response.new_broadcast(broadcast_msg);
+    response.new_broadcast(eles);
 
     // Send the broadcast packet to all sockets in the whiteboard_sessions list
     std::lock_guard<std::mutex> lock(
@@ -630,7 +737,7 @@ void WhiteboardServer::handle_unicast(const std::string &whiteboard_id,
   if (result) {
     auto whiteboard_doc = result->view();
     auto elements_field = whiteboard_doc["elements"];
-
+    std::vector<protobuf::Element> eles;
     if (elements_field) {
       auto elements_array = elements_field.get_array().value;
 
@@ -638,7 +745,8 @@ void WhiteboardServer::handle_unicast(const std::string &whiteboard_id,
         auto element_string = element_value.get_string().value.to_string();
         protobuf::Element ele;
         ele.ParseFromString(element_string);
-        *broadcast_msg.add_elements() = ele;
+        // *broadcast_msg.add_elements() = ele;
+        eles.emplace_back(ele);
       }
     } else {
       std::cerr << "Elements field not found in whiteboard document\n";
@@ -646,54 +754,13 @@ void WhiteboardServer::handle_unicast(const std::string &whiteboard_id,
 
     // Create broadcast packet
     WhiteboardPacket response(version, WhiteboardPacketType::broadcast, rand());
-    response.new_broadcast(broadcast_msg);
+    response.new_broadcast(eles);
 
     // Send the broadcast packet to the specified tcp_socket
     send_packet(tcp_socket, response);
   } else {
     std::cerr << "Whiteboard not found in the database\n";
   }
-}
-
-void WhiteboardServer::handle_login_request(
-    const protobuf::whiteboardPacket &packet, tcp::socket &tcp_socket) {
-  // Handle LoginRequest
-  std::cout << "Received LoginRequest\n";
-
-  // Extract login information from the packet
-  auto request = packet.action().loginrequest();
-  std::string username = request.username();
-  std::string password_hash =
-      request.password_hash(); // Assuming password hash is provided
-  // Construct filter for querying user document
-  auto filter = bsoncxx::builder::stream::document{}
-                << "username" << username << bsoncxx::builder::stream::finalize;
-
-  // Query user document from the user collection
-  auto result = user_collection.find_one(filter.view());
-  WhiteboardPacket response(version, WhiteboardPacketType::actionResponse,
-                            packet.packet_id());
-
-  // Check if the user exists and password hash matches
-  if (result) {
-    auto user_doc = result->view();
-    auto stored_password_hash = user_doc["password_hash"];
-
-    if (stored_password_hash &&
-        stored_password_hash.get_string().value.to_string() == password_hash) {
-      // Password hash matches, send success response
-      response.new_action_response(true, "Login successful");
-    } else {
-      // Password hash does not match, send failure response
-      response.new_action_response(false, "Invalid username or password");
-    }
-  } else {
-    // User does not exist, send failure response
-    response.new_action_response(false, "Invalid username or password");
-  }
-
-  // Send response to the client
-  send_packet(tcp_socket, response);
 }
 
 void WhiteboardServer::send_packet(tcp::socket &tcp_socket,

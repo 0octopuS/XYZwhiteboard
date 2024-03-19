@@ -44,4 +44,6 @@ private:
   void revert(std::array<uint8_t, 32> &hash);
 };
 
+void generate_random_bytes(unsigned char *buffer, size_t size);
+std::string generate_random_salt(int length);
 #endif

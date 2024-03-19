@@ -60,6 +60,8 @@ public:
   protobuf::whiteboardPacket parse_packet(boost::asio::streambuf *buffer);
   void handle_action_response(const protobuf::whiteboardPacket &response);
   void handle_temp_id_response(const protobuf::whiteboardPacket &response);
+  vector<WhiteboardElements>
+  handle_broadcast(const protobuf::whiteboardPacket &response);
   // void start(const std::string &server_ip, unsigned short port);
   void close();
 };

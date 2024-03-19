@@ -62,6 +62,20 @@ private:
     return whiteboard_sessions.count(whiteboard_id) > 0;
   }
 
+  bool user_in_active_user_ids(const bsoncxx::document::view &whiteboard_doc,
+                               int user_id) {
+    auto active_user_ids_field = whiteboard_doc["active_user_ids"];
+    if (active_user_ids_field) {
+      auto active_user_ids = active_user_ids_field.get_array().value;
+      for (const auto &id : active_user_ids) {
+        if (id.get_int32().value == user_id) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   void handle_connection(tcp::socket socket);
   void accept_connections();
 

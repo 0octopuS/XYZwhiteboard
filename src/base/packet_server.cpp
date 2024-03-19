@@ -1,5 +1,6 @@
 
 #include "action.pb.h"
+#include "element.pb.h"
 #include "packet.hpp"
 #include "packet.pb.h"
 #include <cstdint>
@@ -33,13 +34,20 @@ void WhiteboardPacket::new_action_response(bool success, std::string msg) {
   new_packet(action);
 }
 
-void WhiteboardPacket::new_broadcast(protobuf::BroadCast broadcast_msg) {
+void WhiteboardPacket::new_broadcast(std::vector<protobuf::Element> elements) {
 #ifndef NDEBUG
   printf(">>> WhiteboardPacket::new_broadcast()\n");
 #endif
   protobuf::PacketAction action;
-  auto packet_broadcast = action.broadcast();
-  packet_broadcast = std::move(broadcast_msg);
+  auto broadcast_packet = action.mutable_broadcast();
+  // auto broadcast_elements = broadcast_packet->mutable_elements();
+  for (auto &ele : elements) {
+    auto add_ele = broadcast_packet->add_elements();
+    add_ele->CopyFrom(ele);
+    // new_ele = &ele;
+  }
+  // action.set_allocated_broadcast(std::move(&broadcast_msg));
+  // packet_broadcast = std::move();
   // std::swap(packet_broadcast, &broadcast_msg);
   new_packet(action);
 }

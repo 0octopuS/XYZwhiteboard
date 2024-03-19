@@ -18,7 +18,7 @@ enum class WhiteboardElementsType : uint8_t {
 
 class Point {
 public:
-  uint32_t x, y;
+  float x, y;
   std::string str() {
     std::string res = "(" + std::to_string(x) + "," + std::to_string(y) + ")";
     return res;
@@ -85,7 +85,7 @@ public:
   std::string get_stickynote_content();
   // For general use
   protobuf::Element to_protobuf();
-  protobuf::Element from_protobuf();
+  WhiteboardElements from_protobuf(const protobuf::Element &ele);
   WhiteboardElementsType get_type() { return type; }
   void print();
 };

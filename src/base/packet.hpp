@@ -77,11 +77,9 @@ public:
                                   WhiteboardElements _element);
   void new_delete_element_request(uint32_t user_id, std::string whiteboard_id,
                                   WhiteboardElements _orig_element);
-  void new_login_request(uint32_t user_id, std::string username,
-                         std::string password_hash);
-  void new_register_request(uint32_t user_id, std::string username,
-                            std::string password_hash);
-  void new_broadcast(protobuf::BroadCast broadcast_msg);
+  void new_login_request(std::string username, std::string password_hash);
+  void new_register_request(std::string username, std::string password_hash);
+  void new_broadcast(std::vector<protobuf::Element>);
   void new_temp_id_response(bool success, uint32_t user_id);
   void new_action_response(bool success, std::string msg);
   void new_error_request();

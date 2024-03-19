@@ -277,6 +277,52 @@ protobuf::Element WhiteboardElements::to_protobuf() {
   return ele;
 }
 
+WhiteboardElements
+WhiteboardElements::from_protobuf(const protobuf::Element &ele) {
+  WhiteboardElements whiteboardElement;
+  if (ele.has_path()) {
+    const protobuf::Path &path = ele.path();
+    std::vector<Point> pathPoints;
+    for (const auto &point : path.points()) {
+      pathPoints.push_back({point.x(), point.y()});
+    }
+    whiteboardElement.new_path(pathPoints);
+  } else if (ele.has_line()) {
+    const protobuf::Line &line = ele.line();
+    const protobuf::Point &start = line.start();
+    const protobuf::Point &end = line.end();
+    whiteboardElement.new_line({start.x(), start.y()}, {end.x(), end.y()});
+  } else if (ele.has_circle()) {
+    const protobuf::Circle &circle = ele.circle();
+    const protobuf::Point &center = circle.center();
+    whiteboardElement.new_circle({center.x(), center.y()}, circle.radius());
+  } else if (ele.has_triangle()) {
+    const protobuf::Triangle &triangle = ele.triangle();
+    const protobuf::Point &point0 = triangle.point1();
+    const protobuf::Point &point1 = triangle.point2();
+    const protobuf::Point &point2 = triangle.point3();
+    whiteboardElement.new_triangle({point0.x(), point0.y()},
+                                   {point1.x(), point1.y()},
+                                   {point2.x(), point2.y()});
+  } else if (ele.has_square()) {
+    const protobuf::Square &square = ele.square();
+    const protobuf::Point &topleft = square.topleft();
+    whiteboardElement.new_square({topleft.x(), topleft.y()},
+                                 square.side_length());
+  } else if (ele.has_text()) {
+    const protobuf::Text &text = ele.text();
+    const protobuf::Point &center = text.center();
+    whiteboardElement.new_text({center.x(), center.y()}, text.content());
+  } else if (ele.has_stickynote()) {
+    const protobuf::StickyNote &note = ele.stickynote();
+    const protobuf::Point &center = note.center();
+    whiteboardElement.new_stickynote({center.x(), center.y()},
+                                     note.side_length(), note.content());
+  } else {
+  }
+  return whiteboardElement;
+}
+
 void WhiteboardElements::print() {
   std::cout << " ---------------------------\n";
   switch (type) {
