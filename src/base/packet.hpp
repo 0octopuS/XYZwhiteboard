@@ -34,9 +34,10 @@ private:
   WhiteboardPacketType type;
   uint32_t packet_id;
   // uint32_t session_id;
-  protobuf::whiteboardPacket packet;
 
 public:
+  protobuf::whiteboardPacket packet;
+
   // WhiteboardPacket(
   //     uint32_t _version = 1,
   //     WhiteboardPacketType _type = WhiteboardPacketType::createWhiteboard,
