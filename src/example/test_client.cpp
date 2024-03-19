@@ -139,11 +139,10 @@ int main() {
       }
 
       // Receive data from the server
-      bool received = client.handle_receive();
-      if (received) {
-        std::cout << "Received packet len: " << client.received_queue.size()
-                  << "\n";
-      }
+      client.handle_receive_async();
+      std::cout << "Received packet len: " << client.received_queue.size()
+                << "\n";
+
       // while (true) {
       //   bool received = client.handle_receive();
       //   if (received)

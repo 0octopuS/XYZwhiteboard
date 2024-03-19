@@ -2,6 +2,8 @@
 #include "../base/utils.hpp"
 #include "google/protobuf/io/coded_stream.h"
 #include <boost/asio/read_until.hpp>
+#include <boost/bind/bind.hpp>
+#include <boost/core/ref.hpp>
 #include <cstdint>
 #include <cstdio>
 #include <exception>
@@ -54,6 +56,44 @@ bool WhiteboardClient::handle_receive() {
 
   received_queue.emplace(WhiteboardPacket(received_packet));
   return true;
+}
+
+void WhiteboardClient::handle_receive_async() {
+#ifndef NDEBUG
+  DEBUG_MSG;
+#endif
+  boost::asio::streambuf buffer;
+
+  boost::asio::async_read_until(
+      socket, buffer, '\n',
+      boost::bind(&WhiteboardClient::handle_single_packet, this,
+                  boost::asio::placeholders::error, boost::ref(buffer)));
+}
+
+void WhiteboardClient::handle_single_packet(
+    const boost::system::error_code &error, boost::asio::streambuf &buffer) {
+  protobuf::whiteboardPacket received_packet = parse_packet(&buffer);
+
+  switch (static_cast<WhiteboardPacketType>(received_packet.packet_type())) {
+  case WhiteboardPacketType::actionResponse: {
+    handle_action_response(received_packet);
+    break;
+  }
+  case WhiteboardPacketType::tempIdResponse: {
+    handle_temp_id_response(received_packet);
+    break;
+  }
+  case WhiteboardPacketType::broadcast: {
+    auto elements = handle_broadcast(received_packet);
+    break;
+  }
+  default:
+    std::cout << "Unknown packet type\n";
+    throw ClientReceivedWrongPacketType();
+    break;
+  }
+
+  received_queue.emplace(WhiteboardPacket(received_packet));
 }
 
 void WhiteboardClient::close() {

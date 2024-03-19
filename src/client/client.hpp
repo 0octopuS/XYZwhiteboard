@@ -56,6 +56,9 @@ public:
   void send_login_request(string username, string password);
   void send_register_request(string username, string password);
   bool handle_receive();
+  void handle_receive_async();
+  void handle_single_packet(const boost::system::error_code &error,
+                            boost::asio::streambuf &buffer);
   void handle_connect(const boost::system::error_code &error);
   protobuf::whiteboardPacket parse_packet(boost::asio::streambuf *buffer);
   void handle_action_response(const protobuf::whiteboardPacket &response);

@@ -1,6 +1,7 @@
 #include "element.hpp"
 #include "element.pb.h"
 #include "exception.hpp"
+#include <string>
 #include <tuple>
 std::string WhiteboardElementsTypeDict[] = {
     "Path",   "Line", "Circle",  "Triangle",
@@ -161,6 +162,37 @@ std::string WhiteboardElements::get_stickynote_content() {
   return content;
 }
 
+void WhiteboardElements::new_picture(Point _center, std::string _content,
+                                     std::string _filename) {
+  type = WhiteboardElementsType::Picture;
+  pos1 = _center;
+  content = _content;
+  filename = _filename;
+}
+Point WhiteboardElements::get_picture_center() {
+  if (type != WhiteboardElementsType::Picture) {
+    throw ElementsTypeUnmatch("Cannot [center] from type" +
+                              WhiteboardElementsTypeDict[CASTTYPE(type)]);
+  }
+  return pos1;
+}
+
+std::string WhiteboardElements::get_picture_content() {
+  if (type != WhiteboardElementsType::Picture) {
+    throw ElementsTypeUnmatch("Cannot [content] from type" +
+                              WhiteboardElementsTypeDict[CASTTYPE(type)]);
+  }
+  return content;
+}
+
+std::string WhiteboardElements::get_picture_filename() {
+  if (type != WhiteboardElementsType::Picture) {
+    throw ElementsTypeUnmatch("Cannot [content] from type" +
+                              WhiteboardElementsTypeDict[CASTTYPE(type)]);
+  }
+  return filename;
+}
+
 protobuf::Element WhiteboardElements::to_protobuf() {
   protobuf::Element ele;
   switch (type) {
@@ -251,8 +283,15 @@ protobuf::Element WhiteboardElements::to_protobuf() {
     break;
   }
   case WhiteboardElementsType::Picture: {
-    // protobuf::Picture *pic = ele.mutable_picture();
-    // pic -> set
+    protobuf::Picture *pic = ele.mutable_picture();
+    protobuf::Point *center = pic->mutable_center();
+    auto pic_center = get_picture_center();
+    auto pic_content = get_picture_content();
+    auto pic_filename = get_picture_filename();
+    center->set_x(pic_center.x);
+    center->set_y(pic_center.y);
+    pic->set_data(pic_content);
+    pic->set_file_name(pic_filename);
     break;
   }
   case WhiteboardElementsType::StickyNote: {
@@ -318,6 +357,13 @@ WhiteboardElements::from_protobuf(const protobuf::Element &ele) {
     const protobuf::Point &center = note.center();
     whiteboardElement.new_stickynote({center.x(), center.y()},
                                      note.side_length(), note.content());
+  } else if (ele.has_picture()) {
+    const protobuf::Picture &pic = ele.picture();
+    const protobuf::Point &center = pic.center();
+    const std::string pic_content = pic.data();
+    const std::string pic_filename = pic.file_name();
+    whiteboardElement.new_picture({center.x(), center.y()}, pic_content,
+                                  filename);
   } else {
   }
   return whiteboardElement;

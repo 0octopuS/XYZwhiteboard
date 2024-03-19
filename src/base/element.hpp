@@ -41,6 +41,7 @@ private:
   float side1;
   std::vector<Point> path_points;
   std::string content;
+  std::string filename;
 
 public:
   // For path
@@ -83,6 +84,11 @@ public:
   Point get_stickynote_center();
   float get_stickynote_side_length();
   std::string get_stickynote_content();
+
+  void new_picture(Point center, std::string _content, std::string _filename);
+  Point get_picture_center();
+  std::string get_picture_content();
+  std::string get_picture_filename();
   // For general use
   protobuf::Element to_protobuf();
   WhiteboardElements from_protobuf(const protobuf::Element &ele);
