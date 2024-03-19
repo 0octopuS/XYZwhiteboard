@@ -43,7 +43,7 @@ bool WhiteboardClient::handle_receive() {
     break;
   }
   case WhiteboardPacketType::broadcast: {
-    handle_broadcast(received_packet);
+    auto elements = handle_broadcast(received_packet);
     break;
   }
   default:
@@ -379,5 +379,10 @@ WhiteboardClient::handle_broadcast(const protobuf::whiteboardPacket &response) {
             << "\n";
 #endif
   vector<WhiteboardElements> element;
+  for (auto ele : broadcast_action.elements()) {
+    WhiteboardElements temp;
+    temp.from_protobuf(ele);
+    element.emplace_back(temp);
+  }
   return element;
 }
