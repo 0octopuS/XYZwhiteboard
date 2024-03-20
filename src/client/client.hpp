@@ -53,6 +53,8 @@ public:
   void send_join_session_request(string _whiteboard_id);
   void send_quit_session_request();
   void send_add_element_request(WhiteboardElements _ele);
+  void send_modify_element_request(WhiteboardElements _ele);
+  void send_delete_element_request(WhiteboardElements _ele);
   void send_login_request(string username, string password);
   void send_register_request(string username, string password);
   bool handle_receive();
