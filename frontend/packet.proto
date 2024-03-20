@@ -1,0 +1,11 @@
+syntax = "proto3";
+import "action.proto";
+
+package protobuf;
+
+message whiteboardPacket {
+    uint32 version = 1;
+    uint32 packet_type = 2;
+    uint32 packet_id = 3;
+    protobuf.PacketAction action = 4; // Payload
+}

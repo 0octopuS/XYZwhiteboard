@@ -1,0 +1,87 @@
+
+syntax = "proto3";
+package protobuf;
+
+message Point {
+  float x = 1;
+  float y = 2;
+}
+
+message Common {
+  string id = 1;
+  string stroke_color = 2;
+  string user_id = 3;
+}
+
+message Path {
+  Common common = 1;
+  repeated Point points = 2;
+}
+
+message Line {
+  Common common = 1;
+  Point start = 2;
+  Point end = 3;
+}
+
+message Circle {
+  Common common = 1;
+  Point center = 2;
+  float radius = 3;
+}
+
+message Triangle {
+  Common common = 1;
+  Point point1 = 2;
+  Point point2 = 3;
+  Point point3 = 4;
+}
+
+message Square {
+  Common common = 1;
+  Point topleft = 2;
+  float side_length = 3;
+}
+
+message Text{
+  Common common = 1;
+  Point center = 2;
+  string content = 3;
+}
+
+
+message Comment {
+  string user_id = 1;
+  string content = 2;
+}
+
+
+message Picture {
+  Common common = 1;
+  string file_name = 2;
+  Point center = 3;
+  float top_side_length = 4;
+  bytes data = 5;
+  repeated Comment comments = 6;
+}
+
+message StickyNote {
+  Common common = 1;
+  Point center = 2;
+  float side_length = 3;
+  string content = 4;
+}
+
+
+message Element {
+  oneof element_type {
+    Path path = 1;
+    Line line = 2;
+    Circle circle = 3;
+    Triangle triangle = 4;
+    Square square = 5;
+    Text text = 6;
+    Picture picture = 7;
+    StickyNote stickynote = 8;
+  }  
+}

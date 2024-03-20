@@ -1,0 +1,105 @@
+syntax = "proto3";
+import "element.proto";
+package protobuf;
+// Whiteboard Protocol Definition
+
+message CreateWhiteBoardRequest {
+  uint32 user_id = 1;
+}
+
+message CreateSessionRequest {
+  uint32 user_id = 1;
+  string whiteboard_id = 2;
+}
+
+message JoinSessionRequest {
+  uint32 user_id = 1;
+  string whiteboard_id = 2;
+}
+
+message QuitSessionRequest {
+  uint32 user_id = 1;
+  string whiteboard_id = 2;
+}
+
+message AddElementRequest {
+  uint32 user_id = 1;
+  string whiteboard_id = 2;
+  protobuf.Element element = 3;
+}
+
+message ModifyElementRequest {
+  uint32 user_id = 1;
+  string whiteboard_id = 2;
+  protobuf.Element orig_element = 3;
+  protobuf.Element modi_element = 4;
+}
+message DeleteElementRequest{
+  uint32 user_id = 1;
+  string whiteboard_id = 2;
+  protobuf.Element orig_element = 3;
+}
+message SaveWhiteboardRequest {
+  uint32 session_id = 1;
+  string file_format = 2; // "JPEG" or "PNG"
+  string file_path = 3;
+}
+
+
+// -------------- server action -----------------
+// Message to represent a response to a whiteboard action request
+message RegisterResponse{
+  bool success = 1;
+  uint32 uid = 2;
+}
+
+message LoginResponse{
+  bool success = 1;
+  uint32 uid = 2;
+}
+
+
+message ActionResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message BroadCast {
+  repeated Element elements = 1;
+}
+
+message TempIDResponse {
+  bool success = 1;
+  uint32 user_id = 2;
+}
+
+message RegisterRequest
+{
+  uint32 user_id = 1;
+  string username = 2;
+  string password_hash = 3;
+}
+
+message LoginRequest{
+  uint32 user_id = 1;
+  string username = 2;
+  string password_hash = 3;
+}
+
+message PacketAction {
+  oneof action_type {
+    CreateWhiteBoardRequest createWhiteBoard = 1;
+    CreateSessionRequest createSession = 2;
+    JoinSessionRequest joinSession = 3;
+    QuitSessionRequest quitSession = 4;
+    AddElementRequest addElement = 5;
+    ModifyElementRequest modifyElement = 6;
+    DeleteElementRequest deleteElement = 7;
+    SaveWhiteboardRequest saveWhiteboard = 8;
+    RegisterRequest registerRequest= 9;
+    LoginRequest loginRequest= 10;
+    ActionResponse actionResponse = 11;
+    BroadCast broadcast = 12;
+    TempIDResponse tempIdResponse = 13;
+  }  
+}
