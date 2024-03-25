@@ -74,6 +74,9 @@ void WhiteboardPacket::new_packet(protobuf::PacketAction packet_action) {
   } else if (action->has_modifyelement()) {
     packet.set_packet_type(
         static_cast<uint32_t>(WhiteboardPacketType::modifyElement));
+  } else if (action->has_deleteelement()) {
+    packet.set_packet_type(
+        static_cast<uint32_t>(WhiteboardPacketType::deleteElement));
   } else if (action->has_savewhiteboard()) {
     packet.set_packet_type(
         static_cast<uint32_t>(WhiteboardPacketType::saveWhiteboard));

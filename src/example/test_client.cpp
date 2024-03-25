@@ -29,6 +29,14 @@ void test_joinSession(WhiteboardClient *client,
 #ifndef NDEBUG
   DEBUG_MSG;
 #endif
+  // std::cout << "Enter whiteboard ID (press Enter for default): ";
+  // std::string input;
+  // std::getline(std::cin, input);
+
+  // If input is not empty, use the input as whiteboard_id
+  // if (!input.empty()) {
+  //   whiteboard_id = input;
+  // }
   client->send_join_session_request(whiteboard_id); // Pass user ID
 }
 
@@ -71,77 +79,110 @@ void test_register(WhiteboardClient *client) {
   client->send_register_request(username, userpass);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+  if (argc != 2) {
+    user_index = 1;
+  } else {
+
+    if (user_index < 0 || user_index >= static_cast<int>(user.size())) {
+      cerr << "Invalid user index." << endl;
+      return 1;
+    } else {
+      user_index = stoi(argv[1]);
+      cout << "USER:" << user[user_index].first << "\n";
+    }
+  }
+
   try {
 
     WhiteboardClient client("127.0.0.1", 12345); // Assuming server IP and port
     // client.start;
     // test_createWhiteboard(&client);
-    while (true) {
+    // client.start();
+    int times = 1000;
+    while (times) {
+      test_login(&client);
+      // client.handle_receive();
+      // test_createWhiteboard(&client);
+      client.handle_receive();
+      test_createWhiteboard(&client);
+      client.handle_receive();
+      test_joinSession(&client);
+      client.handle_receive();
+      test_addElement(&client);
+      client.handle_receive();
+      client.handle_receive();
+      test_addElement(&client);
+      client.handle_receive();
+      client.handle_receive();
+      test_addElement(&client);
+      client.handle_receive();
+      client.handle_receive();
+      --times;
       // Check if there is any input available from the user
-      if (std::cin.peek() == '\n') {
-        std::cin.ignore(); // Ignore newline character
-        continue; // Continue running without any action if no input is given
-      }
+      // if (std::cin.peek() == '\n') {
+      //   std::cin.ignore(); // Ignore newline character
+      //   continue; // Continue running without any action if no input is given
+      // }
 
       // Display options to the user
-      std::cout << "Select an action:\n";
-      std::cout << "1. Create Whiteboard\n";
-      std::cout << "2. Create Session\n";
-      std::cout << "3. Join Session\n";
-      std::cout << "4. Quit Session\n";
-      std::cout << "5. Add Element\n";
-      std::cout << "6. Delete Element\n";
-      std::cout << "7. Save Whiteboard\n";
-      std::cout << "8. Login\n";
-      std::cout << "9. Register\n";
-      std::cout << "0. Exit\n";
+      // std::cout << "Select an action:\n";
+      // std::cout << "1. Create Whiteboard\n";
+      // std::cout << "2. Create Session\n";
+      // std::cout << "3. Join Session\n";
+      // std::cout << "4. Quit Session\n";
+      // std::cout << "5. Add Element\n";
+      // std::cout << "6. Delete Element\n";
+      // std::cout << "7. Save Whiteboard\n";
+      // std::cout << "8. Login\n";
+      // std::cout << "9. Register\n";
+      // std::cout << "0. Exit\n";
 
       // Get user input
-      int choice;
-      std::cin >> choice;
+      // int choice;
+      // std::cin >> choice;
 
-      // Perform actions based on user input
-      switch (choice) {
-      case 0:
-        std::cout << "Exiting...\n";
-        return 0;
-      case 1:
-        test_createWhiteboard(&client);
-        break;
-      case 2:
-        test_createSession(&client);
-        break;
-      case 3:
-        test_joinSession(&client);
-        break;
-      case 4:
-        test_quitSession(&client);
-        break;
-      case 5:
-        test_addElement(&client);
-        break;
-      case 6:
-        test_deleteElement(&client);
-        break;
-      case 7:
-        test_saveWhiteboard(&client);
-        break;
-      case 8:
-        test_login(&client);
-        break;
-      case 9:
-        test_register(&client);
-        break;
-      default:
-        std::cout << "Invalid choice. Please try again.\n";
-        break;
-      }
+      // // Perform actions based on user input
+      // switch (choice) {
+      // case 0:
+      //   std::cout << "Exiting...\n";
+      //   return 0;
+      // case 1:
+      //   test_createWhiteboard(&client);
+      //   break;
+      // case 2:
+      //   test_createSession(&client);
+      //   break;
+      // case 3:
+      //   test_joinSession(&client);
+      //   break;
+      // case 4:
+      //   test_quitSession(&client);
+      //   break;
+      // case 5:
+      //   test_addElement(&client);
+      //   break;
+      // case 6:
+      //   test_deleteElement(&client);
+      //   break;
+      // case 7:
+      //   test_saveWhiteboard(&client);
+      //   break;
+      // case 8:
+      //   test_login(&client);
+      //   break;
+      // case 9:
+      //   test_register(&client);
+      //   break;
+      // default:
+      //   std::cout << "Invalid choice. Please try again.\n";
+      //   break;
+      // }
 
       // Receive data from the server
-      client.handle_receive_async();
-      std::cout << "Received packet len: " << client.received_queue.size()
-                << "\n";
+      // client.handle_receive_async();
+      // std::cout << "Received packet len: " << client.received_queue.size()
+      // << "\n";
 
       // while (true) {
       //   bool received = client.handle_receive();

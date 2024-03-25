@@ -6,28 +6,37 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/read.hpp>
 #include <boost/asio/read_until.hpp>
+#include <boost/asio/ssl.hpp>
 #include <cstdint>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <iostream>
 #include <vector>
+namespace ssl = boost::asio::ssl;
 
 void WhiteboardServer::accept_connections() {
   try {
+
     while (true) {
       // Accept a new connection
-      tcp::socket socket(io_context);
-      acceptor.accept(socket);
+      boost::asio::ssl::stream<tcp::socket> ssl_socket(io_context, ssl_context);
+      // tcp::socket socket(io_context);
+      acceptor.accept(ssl_socket.lowest_layer());
 #ifndef NDEBUG
-      std::string sClientIp = socket.remote_endpoint().address().to_string();
-      unsigned short uiClientPort = socket.remote_endpoint().port();
+      std::string sClientIp =
+          ssl_socket.lowest_layer().remote_endpoint().address().to_string();
+      unsigned short uiClientPort =
+          ssl_socket.lowest_layer().remote_endpoint().port();
       std::cout << ">>> Connecting from (" << sClientIp << "," << uiClientPort
                 << ")\n";
 #endif
       // Enqueue connection handling task to the thread pool
-      thread_pool.enqueue([this, socket_ptr = std::make_shared<tcp::socket>(
-                                     std::move(socket))]() mutable {
-        handle_connection(std::move(*socket_ptr));
-      });
+      ssl_socket.handshake(boost::asio::ssl::stream_base::server);
+      thread_pool.enqueue(
+          [this, ssl_socket_ptr =
+                     std::make_shared<boost::asio::ssl::stream<tcp::socket>>(
+                         std::move(ssl_socket))]() mutable {
+            handle_connection(std::move(*ssl_socket_ptr));
+          });
     }
   } catch (const std::exception &e) {
     std::cerr << "Exception in accept_connections: " << e.what() << std::endl;
@@ -60,7 +69,9 @@ WhiteboardServer::parse_packet(boost::asio::streambuf *buffer) {
   }
   return packet;
 }
-void WhiteboardServer::handle_connection(tcp::socket socket) {
+
+void WhiteboardServer::handle_connection(
+    boost::asio::ssl::stream<tcp::socket> ssl_socket) {
   try {
     while (true) {
       // Receive packet
@@ -70,7 +81,7 @@ void WhiteboardServer::handle_connection(tcp::socket socket) {
       // Read more here
       // size_t bytes_transferred =
 
-      boost::asio::read_until(socket, buffer, '\n', ec);
+      boost::asio::read_until(ssl_socket, buffer, '\n', ec);
       if (ec == boost::asio::error::eof) {
         // Client disconnected
         std::cout << "Client disconnected\n";
@@ -87,28 +98,28 @@ void WhiteboardServer::handle_connection(tcp::socket socket) {
 
       switch (static_cast<WhiteboardPacketType>(packet.packet_type())) {
       case WhiteboardPacketType::createWhiteboard: // CreateWhiteBoardRequest
-        handle_create_whiteboard_request(packet, socket);
+        handle_create_whiteboard_request(packet, ssl_socket);
         break;
       case WhiteboardPacketType::createSession: // CreateSessionRequest
-        handle_create_session_request(packet, socket);
+        handle_create_session_request(packet, ssl_socket);
         break;
       case WhiteboardPacketType::joinSession:
-        handle_join_session_request(packet, socket);
+        handle_join_session_request(packet, ssl_socket);
         break;
       case WhiteboardPacketType::quitSession:
-        handle_quit_session_request(packet, socket);
+        handle_quit_session_request(packet, ssl_socket);
         break;
       case WhiteboardPacketType::addElement:
-        handle_add_element_request(packet, socket);
+        handle_add_element_request(packet, ssl_socket);
         break;
       case WhiteboardPacketType::modifyElement:
-        handle_modify_element_request(packet, socket);
+        handle_modify_element_request(packet, ssl_socket);
         break;
       case WhiteboardPacketType::loginRequest:
-        handle_login_request(packet, socket);
+        handle_login_request(packet, ssl_socket);
         break;
       case WhiteboardPacketType::registerRequest:
-        handle_register_request(packet, socket);
+        handle_register_request(packet, ssl_socket);
         break;
       // Add cases for other packet types...
       default:
@@ -120,6 +131,67 @@ void WhiteboardServer::handle_connection(tcp::socket socket) {
     std::cout << "Exception in handle_connection: " << e.what() << std::endl;
   }
 }
+
+// void WhiteboardServer::handle_connection(tcp::socket socket) {
+//   try {
+//     while (true) {
+//       // Receive packet
+
+//       boost::asio::streambuf buffer;
+//       boost::system::error_code ec;
+//       // Read more here
+//       // size_t bytes_transferred =
+
+//       boost::asio::read_until(socket, buffer, '\n', ec);
+//       if (ec == boost::asio::error::eof) {
+//         // Client disconnected
+//         std::cout << "Client disconnected\n";
+//         break;
+//       } else if (ec) {
+//         // Error reading from socket
+//         std::cout << "System error\n";
+//         throw boost::system::system_error(ec);
+//       }
+
+//       protobuf::whiteboardPacket packet = parse_packet(&buffer);
+
+//       // Classify packet type and call corresponding method
+
+//       switch (static_cast<WhiteboardPacketType>(packet.packet_type())) {
+//       case WhiteboardPacketType::createWhiteboard: // CreateWhiteBoardRequest
+//         handle_create_whiteboard_request(packet, socket);
+//         break;
+//       case WhiteboardPacketType::createSession: // CreateSessionRequest
+//         handle_create_session_request(packet, socket);
+//         break;
+//       case WhiteboardPacketType::joinSession:
+//         handle_join_session_request(packet, socket);
+//         break;
+//       case WhiteboardPacketType::quitSession:
+//         handle_quit_session_request(packet, socket);
+//         break;
+//       case WhiteboardPacketType::addElement:
+//         handle_add_element_request(packet, socket);
+//         break;
+//       case WhiteboardPacketType::modifyElement:
+//         handle_modify_element_request(packet, socket);
+//         break;
+//       case WhiteboardPacketType::loginRequest:
+//         handle_login_request(packet, socket);
+//         break;
+//       case WhiteboardPacketType::registerRequest:
+//         handle_register_request(packet, socket);
+//         break;
+//       // Add cases for other packet types...
+//       default:
+//         std::cout << "Unknown packet type\n";
+//         break;
+//       }
+//     }
+//   } catch (const std::exception &e) {
+//     std::cout << "Exception in handle_connection: " << e.what() << std::endl;
+//   }
+// }
 int getNextSequence(mongocxx::client &client, const std::string &db_name,
                     const std::string &sequence_collection_name) {
   auto collection = client[db_name][sequence_collection_name];
@@ -141,7 +213,8 @@ int getNextSequence(mongocxx::client &client, const std::string &db_name,
   }
   return 0; // Default value if sequence is not found
 }
-uint32_t WhiteboardServer::handle_assign_user_id(tcp::socket &tcp_socket) {
+uint32_t
+WhiteboardServer::handle_assign_user_id(ssl::stream<tcp::socket> &tcp_socket) {
   uint32_t temp_user_id = 1; // change to a RNG
   std::cout << (temp_user_id);
   int uid = getNextSequence(mongoclient, "whiteboards", "user_collection");
@@ -174,7 +247,8 @@ uint32_t WhiteboardServer::handle_assign_user_id(tcp::socket &tcp_socket) {
 }
 
 void WhiteboardServer::handle_create_whiteboard_request(
-    const protobuf::whiteboardPacket &packet, tcp::socket &tcp_socket) {
+    const protobuf::whiteboardPacket &packet,
+    ssl::stream<tcp::socket> &tcp_socket) {
   // Handle CreateWhiteBoardRequest
   auto packet_id = packet.packet_id();
   auto request = packet.action().createwhiteboard();
@@ -213,7 +287,8 @@ void WhiteboardServer::handle_create_whiteboard_request(
 
 // TODO: unfinished function
 void WhiteboardServer::handle_create_session_request(
-    const protobuf::whiteboardPacket &packet, tcp::socket &tcp_socket) {
+    const protobuf::whiteboardPacket &packet,
+    ssl::stream<tcp::socket> &tcp_socket) {
   // Handle CreateSessionRequest
   std::cout << "Received CreateSessionRequest\n";
   auto request = packet.action().createsession();
@@ -261,7 +336,8 @@ void WhiteboardServer::handle_create_session_request(
 }
 
 void WhiteboardServer::handle_join_session_request(
-    const protobuf::whiteboardPacket &packet, tcp::socket &tcp_socket) {
+    const protobuf::whiteboardPacket &packet,
+    ssl::stream<tcp::socket> &tcp_socket) {
   // Handle JoinSessionRequest
   std::cout << "Received JoinSessionRequest\n";
   auto request = packet.action().joinsession();
@@ -296,7 +372,7 @@ void WhiteboardServer::handle_join_session_request(
                     << bsoncxx::builder::stream::finalize;
       whiteboard_collection.update_one(filter.view(), update.view());
       // Success response
-      response.new_action_response(true, "Joined session successfully");
+      response.new_action_response(true, whiteboard_id);
       if (is_whiteboard_shared(whiteboard_id)) {
         handle_unicast(whiteboard_id, tcp_socket);
       }
@@ -312,7 +388,8 @@ void WhiteboardServer::handle_join_session_request(
 }
 
 void WhiteboardServer::handle_quit_session_request(
-    const protobuf::whiteboardPacket &packet, tcp::socket &tcp_socket) {
+    const protobuf::whiteboardPacket &packet,
+    ssl::stream<tcp::socket> &tcp_socket) {
   // Handle QuitSessionRequest
   std::cout << "Received QuitSessionRequest\n";
   auto request = packet.action().quitsession();
@@ -364,7 +441,8 @@ void WhiteboardServer::handle_quit_session_request(
 }
 
 void WhiteboardServer::handle_add_element_request(
-    const protobuf::whiteboardPacket &packet, tcp::socket &tcp_socket) {
+    const protobuf::whiteboardPacket &packet,
+    ssl::stream<tcp::socket> &tcp_socket) {
   // Step 1
   auto request = packet.action().addelement();
   auto user_id = static_cast<int>(request.user_id());
@@ -376,6 +454,7 @@ void WhiteboardServer::handle_add_element_request(
   // protobuf::whiteboardPacket new_proto_ele;
   // new_proto_ele.ParseFromString(proto_ele_string);
   // auto insert_one_result =
+  std::cout << "Whiteboard_id" << whiteboard_id << "\n";
 
   auto filter = bsoncxx::builder::stream::document{}
                 << "_id" << bsoncxx::oid{whiteboard_id}
@@ -419,7 +498,8 @@ void WhiteboardServer::handle_add_element_request(
 }
 
 void WhiteboardServer::handle_register_request(
-    const protobuf::whiteboardPacket &packet, tcp::socket &tcp_socket) {
+    const protobuf::whiteboardPacket &packet,
+    ssl::stream<tcp::socket> &tcp_socket) {
   auto request = packet.action().registerrequest();
   std::string username = request.username();
   std::string password_hash = request.password_hash();
@@ -446,7 +526,7 @@ void WhiteboardServer::handle_register_request(
   std::string salted_password = salt_string + password_hash;
 
   // Hash the concatenated string using SHA256
-  SHA256 sha256;
+  class SHA256 sha256;
   sha256.update(
       reinterpret_cast<const unsigned char *>(salted_password.c_str()),
       salted_password.length());
@@ -494,7 +574,8 @@ void WhiteboardServer::handle_register_request(
 }
 
 void WhiteboardServer::handle_login_request(
-    const protobuf::whiteboardPacket &packet, tcp::socket &tcp_socket) {
+    const protobuf::whiteboardPacket &packet,
+    ssl::stream<tcp::socket> &tcp_socket) {
   // Handle LoginRequest
   std::cout << "Received LoginRequest\n";
 
@@ -523,7 +604,7 @@ void WhiteboardServer::handle_login_request(
       std::cout << "+++" << salt << "\n";
       std::string salted_password = salt + password_hash;
 
-      SHA256 sha256;
+      class SHA256 sha256;
       sha256.update(
           reinterpret_cast<const unsigned char *>(salted_password.c_str()),
           salted_password.length());
@@ -564,7 +645,8 @@ void WhiteboardServer::handle_login_request(
 }
 
 void WhiteboardServer::handle_modify_element_request(
-    const protobuf::whiteboardPacket &packet, tcp::socket &tcp_socket) {
+    const protobuf::whiteboardPacket &packet,
+    ssl::stream<tcp::socket> &tcp_socket) {
   // Extract orig_element and new_element from the packet
   auto request = packet.action().modifyelement();
   auto orig_element = request.orig_element();
@@ -711,14 +793,14 @@ void WhiteboardServer::handle_broadcast(std::string whiteboard_id) {
     // Send the broadcast packet to all sockets in the whiteboard_sessions list
     std::lock_guard<std::mutex> lock(
         map_mutex); // Lock the mutex to ensure thread safety
-    for (auto &socket : whiteboard_sessions[whiteboard_id]) {
+    for (auto socket : whiteboard_sessions[whiteboard_id]) {
       send_packet(*socket, response);
     }
   }
 }
 
 void WhiteboardServer::handle_unicast(const std::string &whiteboard_id,
-                                      tcp::socket &tcp_socket) {
+                                      ssl::stream<tcp::socket> &tcp_socket) {
   // Check if the whiteboard is in shared status
   if (!is_whiteboard_shared(whiteboard_id)) {
     std::cerr << "Whiteboard is not in shared status\n";
@@ -763,7 +845,7 @@ void WhiteboardServer::handle_unicast(const std::string &whiteboard_id,
   }
 }
 
-void WhiteboardServer::send_packet(tcp::socket &tcp_socket,
+void WhiteboardServer::send_packet(ssl::stream<tcp::socket> &tcp_socket,
                                    const WhiteboardPacket &packet) {
   // Serialize WhiteboardPacket to a buffer
   // std::ostringstream oss;
@@ -780,8 +862,10 @@ void WhiteboardServer::send_packet(tcp::socket &tcp_socket,
 
     size_t byte = boost::asio::write(tcp_socket, request);
 #ifndef NDEBUG
-    std::string sClientIp = tcp_socket.remote_endpoint().address().to_string();
-    unsigned short uiClientPort = tcp_socket.remote_endpoint().port();
+    std::string sClientIp =
+        tcp_socket.lowest_layer().remote_endpoint().address().to_string();
+    unsigned short uiClientPort =
+        tcp_socket.lowest_layer().remote_endpoint().port();
     std::cout << ">>> Send to (" << sClientIp << "," << uiClientPort << ")\n";
     printf(">>> send_packet: %zu\n", byte);
     printf(">>> send packet type\n");

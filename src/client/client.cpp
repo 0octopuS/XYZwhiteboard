@@ -62,38 +62,55 @@ void WhiteboardClient::handle_receive_async() {
 #ifndef NDEBUG
   DEBUG_MSG;
 #endif
-  boost::asio::streambuf buffer;
+  deadline_.expires_from_now(boost::posix_time::seconds(3));
+
+  // boost::asio::streambuf buffer;
 
   boost::asio::async_read_until(
-      socket, buffer, '\n',
+      socket, input_buffer_, '\n',
       boost::bind(&WhiteboardClient::handle_single_packet, this,
-                  boost::asio::placeholders::error, boost::ref(buffer)));
+                  boost::asio::placeholders::error));
 }
 
 void WhiteboardClient::handle_single_packet(
-    const boost::system::error_code &error, boost::asio::streambuf &buffer) {
-  protobuf::whiteboardPacket received_packet = parse_packet(&buffer);
+    const boost::system::error_code &ec) {
+  //, boost::asio::streambuf &buffer) {
+  if (!connected_)
+    return;
 
-  switch (static_cast<WhiteboardPacketType>(received_packet.packet_type())) {
-  case WhiteboardPacketType::actionResponse: {
-    handle_action_response(received_packet);
-    break;
-  }
-  case WhiteboardPacketType::tempIdResponse: {
-    handle_temp_id_response(received_packet);
-    break;
-  }
-  case WhiteboardPacketType::broadcast: {
-    auto elements = handle_broadcast(received_packet);
-    break;
-  }
-  default:
-    std::cout << "Unknown packet type\n";
-    throw ClientReceivedWrongPacketType();
-    break;
-  }
+  if (!ec) {
+    // Extract the newline-delimited message from the buffer.
+    // std::string line;
+    // std::istream is(&input_buffer_);
+    // std::getline(is, line);
+    protobuf::whiteboardPacket received_packet = parse_packet(&input_buffer_);
+    switch (static_cast<WhiteboardPacketType>(received_packet.packet_type())) {
+    case WhiteboardPacketType::actionResponse: {
+      handle_action_response(received_packet);
+      break;
+    }
+    case WhiteboardPacketType::tempIdResponse: {
+      handle_temp_id_response(received_packet);
+      break;
+    }
+    case WhiteboardPacketType::broadcast: {
+      auto elements = handle_broadcast(received_packet);
+      break;
+    }
+    default:
+      std::cout << "Unknown packet type\n";
+      throw ClientReceivedWrongPacketType();
+      break;
+    }
 
-  received_queue.emplace(WhiteboardPacket(received_packet));
+    received_queue.emplace(WhiteboardPacket(received_packet));
+
+    // Empty messages are heartbeats and so ignored.
+
+    handle_receive_async();
+  } else {
+    std::cout << "Error on receive: " << ec.message() << "\n";
+  }
 }
 
 void WhiteboardClient::close() {
@@ -101,20 +118,22 @@ void WhiteboardClient::close() {
   DEBUG_MSG;
 #endif
   if (connected_) {
+    connected_ = false;
     // Gracefully close the connection
     boost::asio::socket_base::shutdown_type shutdown_type =
         boost::asio::socket_base::shutdown_both;
     io_context.post([this, shutdown_type]() {
       boost::system::error_code ec;
-      ec = socket.shutdown(shutdown_type, ec);
+      ec = socket.lowest_layer().shutdown(shutdown_type, ec);
       if (!ec) {
-        socket.close();
+        socket.lowest_layer().close();
         std::cout << "Connection closed successfully." << std::endl;
       } else {
         std::cerr << "Error closing connection: " << ec.message() << std::endl;
       }
     });
   }
+  // deadline_.cancel();
 }
 void WhiteboardClient::send_create_whiteboard_request() {
 #ifndef NDEBUG
@@ -220,11 +239,7 @@ void WhiteboardClient::send_packet(const WhiteboardPacket &packet) {
 
   // Before sending the packet, client add this packet to its sending queue
   send_queue[packet.get_packet_id()] = packet.get_packet_type();
-#ifndef NDEBUG
-  std::cout << ">>>  Send a packet of type "
-            << static_cast<uint32_t>(packet.get_packet_type()) << ", id "
-            << packet.get_packet_id() << "\n";
-#endif
+
   boost::asio::streambuf request;
   std::ostream os(&request);
   {
@@ -236,11 +251,11 @@ void WhiteboardClient::send_packet(const WhiteboardPacket &packet) {
   }
 
   size_t byte = boost::asio::write(socket, request);
-  // send_queue_.push(request);
+// send_queue_.push(request);
 #ifndef NDEBUG
-  DEBUG_MSG;
-  printf(">>> send_packet: %zu\n", byte);
-  printf(">>> send packet\n");
+  std::cout << ">>>  Send a packet of type "
+            << static_cast<uint32_t>(packet.get_packet_type()) << ", id "
+            << packet.get_packet_id() << ", length " << byte << "\n";
   packet.print();
 #endif
 }
@@ -258,7 +273,7 @@ void WhiteboardClient::send_add_element_request(WhiteboardElements _ele) {
 }
 
 void WhiteboardClient::send_login_request(string username, string password) {
-  SHA256 sha;
+  class SHA256 sha;
   WhiteboardPacket packet(version, WhiteboardPacketType::loginRequest,
                           ++packet_counter);
   sha.update(password);
@@ -272,7 +287,7 @@ void WhiteboardClient::send_login_request(string username, string password) {
 }
 
 void WhiteboardClient::send_register_request(string username, string password) {
-  SHA256 sha;
+  class SHA256 sha;
   WhiteboardPacket packet(version, WhiteboardPacketType::registerRequest,
                           ++packet_counter);
   sha.update(password);
@@ -319,7 +334,9 @@ void WhiteboardClient::handle_action_response(
   }
   case WhiteboardPacketType::joinSession: {
     // the return value should be just string message;
-    if (!response.success()) {
+    if (response.success()) {
+      whiteboard_id = response.message();
+    } else {
       throw ClientReceiveServerSideFail("Server fail to join a session");
     }
 #ifndef NDEBUG
@@ -425,4 +442,88 @@ WhiteboardClient::handle_broadcast(const protobuf::whiteboardPacket &response) {
     element.emplace_back(temp);
   }
   return element;
+}
+
+void WhiteboardClient::check_deadline() {
+  if (!connected_)
+    return;
+
+  // Check whether the deadline has passed. We compare the deadline against
+  // the current time since a new asynchronous operation may have moved the
+  // deadline before this actor had a chance to run.
+  if (deadline_.expires_at() <=
+      boost::asio::deadline_timer::traits_type::now()) {
+    // The deadline has passed. The socket is closed so that any outstanding
+    // asynchronous operations are cancelled.
+    socket.lowest_layer().close();
+
+    // There is no longer an active deadline. The expiry is set to positive
+    // infinity so that the actor takes no action until a new deadline is set.
+    deadline_.expires_at(boost::posix_time::pos_infin);
+  }
+
+  // Put the actor back to sleep.
+  deadline_.async_wait(boost::bind(&WhiteboardClient::check_deadline, this));
+}
+
+void WhiteboardClient::start_connect(tcp::resolver::iterator endpoint_iter) {
+  if (endpoint_iter != tcp::resolver::iterator()) {
+    std::cout << "Trying " << endpoint_iter->endpoint() << "...\n";
+
+    // Set a deadline for the connect operation.
+    deadline_.expires_from_now(boost::posix_time::seconds(60));
+
+    // Start the asynchronous connect operation.
+    socket.lowest_layer().async_connect(
+        endpoint_iter->endpoint(),
+        boost::bind(&WhiteboardClient::handle_connect, this,
+                    std::placeholders::_1, endpoint_iter));
+  } else {
+    // There are no more endpoints to try. Shut down the client.
+    close();
+  }
+}
+void WhiteboardClient::start() {
+  start_connect(iter);
+  deadline_.async_wait(boost::bind(&WhiteboardClient::check_deadline, this));
+  io_context.run();
+}
+
+void WhiteboardClient::handle_connect(const boost::system::error_code &ec,
+                                      tcp::resolver::iterator endpoint_iter) {
+  // if (!connected_)
+  //   return;
+
+  // The async_connect() function automatically opens the socket at the start
+  // of the asynchronous operation. If the socket is closed at this time then
+  // the timeout handler must have run first.
+  if (!socket.lowest_layer().is_open()) {
+    std::cout << "Connect timed out\n";
+
+    // Try the next available endpoint.
+    start_connect(++endpoint_iter);
+  }
+
+  // Check if the connect operation failed before the deadline expired.
+  else if (ec) {
+    std::cout << "Connect error: " << ec.message() << "\n";
+
+    // We need to close the socket used in the previous connection attempt
+    // before starting a new one.
+    socket.lowest_layer().close();
+
+    // Try the next available endpoint.
+    start_connect(++endpoint_iter);
+  }
+
+  // Otherwise we have successfully established a connection.
+  else {
+    std::cout << "Connected to " << endpoint_iter->endpoint() << "\n";
+
+    // Start the input actor.
+    handle_receive_async();
+
+    // Start the heartbeat actor.
+    // start_write();
+  }
 }
